@@ -1,0 +1,6 @@
+├── dir1
+│   └── file1.txt
+├── dir2
+├── dir3
+│   └── subdir
+└── file2.txt

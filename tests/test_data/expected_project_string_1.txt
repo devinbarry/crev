@@ -1,13 +1,12 @@
-Project Directory Structure:
 ├── cmd
-│   ├── ai-code-review
-│   │   └── main.go
+│   └── ai-code-review
+│       └── main.go
 ├── go.mod
-├── internal
-│   ├── files
-│   │   └── filtering.go
-│   ├── formatting
-│   │   └── format.go
+└── internal
+    ├── files
+    │   └── filtering.go
+    └── formatting
+        └── format.go
 
 File: 
 cmd/ai-code-review/main.go

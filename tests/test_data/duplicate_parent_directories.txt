@@ -1,0 +1,6 @@
+└── parent
+    ├── child1
+    │   ├── file1.txt
+    │   └── file2.txt
+    └── child2
+        └── file3.txt

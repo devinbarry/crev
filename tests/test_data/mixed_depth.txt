@@ -1,0 +1,9 @@
+├── a
+│   └── very
+│       └── deep
+│           └── path
+│               └── file.txt
+├── b
+│   └── file.txt
+├── c
+└── root_file.txt

@@ -2,55 +2,74 @@
 package formatting
 
 import (
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 )
 
-// Given a path, calculatePathLevel returns the level of the path in the directory structure.
-func calculatePathLevel(path string) int {
-	return len(strings.Split(path, string(os.PathSeparator))) - 1
+type node struct {
+	name     string
+	children map[string]*node
 }
 
-// Given a list of paths, an index, and a level, checkIfLastPathAtLevel returns true if the path
-func checkIfLastPathAtLevel(paths []string, i, level int) bool {
-	return i == len(paths)-1 || len(strings.Split(paths[i+1], string(os.PathSeparator))) <= level
-}
-
-// Given a level prefix, level, and a boolean indicating if the path is the last at the level,
-func buildTreeBranch(levelPrefix map[int]string, level int, isLast bool) string {
-	var branchPrefix strings.Builder
-	for l := 0; l < level; l++ {
-		branchPrefix.WriteString(levelPrefix[l])
-	}
-
-	branch := "├── "
-	if isLast {
-		branch = "└── "
-		levelPrefix[level] = "    "
-	} else {
-		levelPrefix[level] = "│   "
-	}
-
-	return branchPrefix.String() + branch
-}
-
-// GeneratePathTree Given a list of paths, generatePathTree returns a string representation of the
+// GeneratePathTree Given a list of paths, GeneratePathTree returns a string representation of the
 // directory structure.
 func GeneratePathTree(paths []string) string {
+	root := &node{children: make(map[string]*node)}
+
 	// Sort the paths lexicographically to ensure correct tree structure
 	sort.Strings(paths)
-	var treeBuilder strings.Builder
-	levelPrefix := make(map[int]string)
 
-	for i, path := range paths {
-		level := calculatePathLevel(path)
-		isLast := checkIfLastPathAtLevel(paths, i, level)
-		treeBuilder.WriteString(buildTreeBranch(levelPrefix, level, isLast) + filepath.Base(path) + "\n")
+	// Build the tree structure
+	for _, path := range paths {
+		cleanedPath := filepath.Clean(path)
+		if cleanedPath == "." {
+			continue // Skip if the path is empty or root
+		}
+		parts := strings.Split(filepath.ToSlash(cleanedPath), "/")
+		current := root
+		for _, part := range parts {
+			if _, exists := current.children[part]; !exists {
+				current.children[part] = &node{name: part, children: make(map[string]*node)}
+			}
+			current = current.children[part]
+		}
 	}
 
-	return treeBuilder.String()
+	// Generate the tree string
+	var sb strings.Builder
+	printTree(root, "", &sb)
+	return sb.String()
+}
+
+func printTree(n *node, prefix string, sb *strings.Builder) {
+	children := make([]*node, 0, len(n.children))
+	for _, child := range n.children {
+		children = append(children, child)
+	}
+	sort.Slice(children, func(i, j int) bool {
+		return children[i].name < children[j].name
+	})
+
+	for i, child := range children {
+		isLast := i == len(children)-1
+		sb.WriteString(prefix)
+		if isLast {
+			sb.WriteString("└── ")
+		} else {
+			sb.WriteString("├── ")
+		}
+		sb.WriteString(child.name)
+		sb.WriteString("\n") // Always append a newline
+
+		newPrefix := prefix
+		if isLast {
+			newPrefix += "    "
+		} else {
+			newPrefix += "│   "
+		}
+		printTree(child, newPrefix, sb)
+	}
 }
 
 // CreateProjectString Creates a string representation of the project.
