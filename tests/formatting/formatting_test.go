@@ -9,10 +9,11 @@ import (
 	"github.com/devinbarry/crev/internal/formatting"
 )
 
+// TestCreateProjectString tests the combined output of directory tree and file contents.
 func TestCreateProjectString(t *testing.T) {
 	projectTree, err := os.ReadFile("../test_data/expected_path_tree_full.txt")
 	if err != nil {
-		t.Errorf("error reading test file: %v", err)
+		t.Fatalf("error reading test file: %v", err)
 	}
 	fileContentMap := map[string]string{
 		"cmd/ai-code-review/main.go":    "package main\n",
@@ -22,18 +23,19 @@ func TestCreateProjectString(t *testing.T) {
 	}
 	expectedProjectString, err := os.ReadFile("../test_data/expected_project_output.txt")
 	if err != nil {
-		t.Errorf("error reading test file: %v", err)
+		t.Fatalf("error reading test file: %v", err)
 	}
 	expected := string(expectedProjectString)
 	result := formatting.CreateProjectString(string(projectTree), fileContentMap)
 	expectedStr := strings.TrimSpace(string(expected))
 	resultStr := strings.TrimSpace(result)
 	if resultStr != expectedStr {
-		t.Errorf("expected \n%s\n, got \n%s\n", expected, result)
+		t.Errorf("CreateProjectString: expected \n%s\n, got \n%s\n", expectedStr, resultStr)
 	}
 }
 
-func TestGeneratePathTreeMain(t *testing.T) {
+// TestGeneratePathTree tests the directory tree generation independently.
+func TestGeneratePathTree(t *testing.T) {
 	paths := []string{
 		"cmd",
 		"cmd/ai-code-review",
@@ -45,17 +47,17 @@ func TestGeneratePathTreeMain(t *testing.T) {
 		"internal/formatting/format.go",
 		"go.mod",
 	}
-	expected, err := os.ReadFile("../test_data/expected_path_tree_full.txt")
+	expectedTree, err := os.ReadFile("../test_data/expected_path_tree_full.txt")
 	if err != nil {
-		t.Errorf("error reading test file: %v", err)
+		t.Fatalf("error reading test file: %v", err)
 	}
 
-	result := formatting.GeneratePathTree(paths)
-	expectedStr := strings.TrimSpace(string(expected))
-	resultStr := strings.TrimSpace(result)
+	resultTree := formatting.GeneratePathTree(paths)
+	expectedStr := strings.TrimSpace(string(expectedTree))
+	resultStr := strings.TrimSpace(resultTree)
 
 	if resultStr != expectedStr {
-		t.Errorf("expected \n%s\n, got \n%s\n", expectedStr, resultStr)
+		t.Errorf("GeneratePathTree: expected \n%s\n, got \n%s\n", expectedStr, resultStr)
 	}
 }
 
