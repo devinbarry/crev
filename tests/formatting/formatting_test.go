@@ -10,7 +10,7 @@ import (
 )
 
 func TestCreateProjectString(t *testing.T) {
-	projectTree, err := os.ReadFile("../test_data/expected_tree_1.txt")
+	projectTree, err := os.ReadFile("../test_data/expected_path_tree_full.txt")
 	if err != nil {
 		t.Errorf("error reading test file: %v", err)
 	}
@@ -20,7 +20,7 @@ func TestCreateProjectString(t *testing.T) {
 		"internal/formatting/format.go": "package formatting\n",
 		"go.mod":                        "go mod\n",
 	}
-	expectedProjectString, err := os.ReadFile("../test_data/expected_project_string_1.txt")
+	expectedProjectString, err := os.ReadFile("../test_data/expected_project_output.txt")
 	if err != nil {
 		t.Errorf("error reading test file: %v", err)
 	}
@@ -33,7 +33,7 @@ func TestCreateProjectString(t *testing.T) {
 	}
 }
 
-func TestGeneratePathTreeOld(t *testing.T) {
+func TestGeneratePathTreeMain(t *testing.T) {
 	paths := []string{
 		"cmd",
 		"cmd/ai-code-review",
@@ -45,13 +45,12 @@ func TestGeneratePathTreeOld(t *testing.T) {
 		"internal/formatting/format.go",
 		"go.mod",
 	}
-	expected, err := os.ReadFile("../test_data/expected_tree_1.txt")
+	expected, err := os.ReadFile("../test_data/expected_path_tree_full.txt")
 	if err != nil {
 		t.Errorf("error reading test file: %v", err)
 	}
 
 	result := formatting.GeneratePathTree(paths)
-	// Normalize both expected and result strings
 	expectedStr := strings.TrimSpace(string(expected))
 	resultStr := strings.TrimSpace(result)
 
@@ -60,7 +59,7 @@ func TestGeneratePathTreeOld(t *testing.T) {
 	}
 }
 
-func testGeneratePathTree(t *testing.T, name string, paths []string, expectedFile string) {
+func runGeneratePathTreeTest(t *testing.T, name string, paths []string, expectedFile string) {
 	result := formatting.GeneratePathTree(paths)
 	expected, err := os.ReadFile(filepath.Join("../test_data", expectedFile))
 	if err != nil {
@@ -82,7 +81,7 @@ func TestGeneratePathTreeBasicStructure(t *testing.T) {
 		"internal/files/filtering.go",
 		"internal/formatting/format.go",
 	}
-	testGeneratePathTree(t, "Basic structure", paths, "basic_structure.txt")
+	runGeneratePathTreeTest(t, "Basic structure", paths, "basic_structure.txt")
 }
 
 func TestGeneratePathTreeEmptyDirectories(t *testing.T) {
@@ -92,7 +91,7 @@ func TestGeneratePathTreeEmptyDirectories(t *testing.T) {
 		"dir3/subdir/",
 		"file2.txt",
 	}
-	testGeneratePathTree(t, "Empty directories", paths, "empty_directories.txt")
+	runGeneratePathTreeTest(t, "Empty directories", paths, "empty_directories.txt")
 }
 
 func TestGeneratePathTreeMixedDepth(t *testing.T) {
@@ -102,7 +101,7 @@ func TestGeneratePathTreeMixedDepth(t *testing.T) {
 		"c/",
 		"root_file.txt",
 	}
-	testGeneratePathTree(t, "Mixed depth", paths, "mixed_depth.txt")
+	runGeneratePathTreeTest(t, "Mixed depth", paths, "mixed_depth.txt")
 }
 
 func TestGeneratePathTreeDuplicateParentDirectories(t *testing.T) {
@@ -111,5 +110,5 @@ func TestGeneratePathTreeDuplicateParentDirectories(t *testing.T) {
 		"parent/child1/file2.txt",
 		"parent/child2/file3.txt",
 	}
-	testGeneratePathTree(t, "Duplicate parent directories", paths, "duplicate_parent_directories.txt")
+	runGeneratePathTreeTest(t, "Duplicate parent directories", paths, "duplicate_parent_directories.txt")
 }
