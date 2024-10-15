@@ -190,7 +190,7 @@ func init() {
 	generateCmd.Flags().Bool("all", false, "Include all file contents in the bundle (excluding files matched by exclude patterns)")
 
 	// Add the -f flag (short for --files) to specify explicit files to include in the bundle
-	generateCmd.Flags().StringSliceP("files", "f", []string{}, "Comma-separated list of explicit file paths to include")
+	generateCmd.Flags().StringSliceP("files", "f", []string{}, "Specify multiple file paths to include (e.g., --files file1.go --files file2.py)")
 
 	// Add the --include flag to include files or directories matching patterns
 	generateCmd.Flags().StringSliceP("include", "I", []string{}, "Include files or directories matching these glob patterns (e.g., 'src/**', '**/*.go')")
