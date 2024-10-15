@@ -9,8 +9,8 @@ import (
 	"sync"
 )
 
-// GetAllFilePaths Given a root path returns all the file paths in the root directory
-// and its subdirectories, while respecting exclusion rules.
+// GetAllFilePaths returns all the file paths in the root directory and its subdirectories,
+// while respecting inclusion and exclusion patterns.
 func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFiles []string) ([]string, error) {
 	var filePaths []string
 

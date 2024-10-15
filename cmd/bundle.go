@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Standard prefixes to ignore
 var standardPrefixesToIgnore = []string{
 	// ignore .git, .idea, .vscode, etc.
 	".",
@@ -43,7 +44,6 @@ var standardPrefixesToIgnore = []string{
 	"Thumbs.db",
 	"package",
 	"yarn.lock",
-	"package",
 	"tsconfig",
 	// next.js
 	"next.config",
@@ -67,6 +67,7 @@ var standardPrefixesToIgnore = []string{
 	"postcss",
 }
 
+// Standard extensions to ignore
 var standardExtensionsToIgnore = []string{
 	".jpeg",
 	".jpg",
@@ -111,6 +112,18 @@ Example usage:
 		explicitFiles := viper.GetStringSlice("files")
 		includePatterns := viper.GetStringSlice("include")
 		excludePatterns := viper.GetStringSlice("exclude")
+
+		// Incorporate standard prefixes and extensions into exclude patterns
+		// Convert prefixes to exclude patterns
+		for _, prefix := range standardPrefixesToIgnore {
+			// Exclude directories and files starting with the prefix at any level
+			excludePatterns = append(excludePatterns, "**/"+prefix+"*", prefix+"*")
+		}
+
+		// Convert extensions to exclude patterns
+		for _, ext := range standardExtensionsToIgnore {
+			excludePatterns = append(excludePatterns, "**/*"+ext)
+		}
 
 		// Fetch file paths
 		filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, explicitFiles)
