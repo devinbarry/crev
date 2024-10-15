@@ -2,93 +2,97 @@
 package files
 
 import (
+	"github.com/bmatcuk/doublestar/v4"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 )
 
-// GetExplicitFilePaths validates and returns the file paths from the given list that exist.
-func GetExplicitFilePaths(explicitPaths []string) ([]string, error) {
-	var validPaths []string
-
-	// Iterate through the provided paths and check if they exist.
-	for _, path := range explicitPaths {
-		// Check if the file or directory exists
-		info, err := os.Stat(path)
-		if os.IsNotExist(err) {
-			return nil, err // Return an error if the file or directory does not exist
-		} else if err != nil {
-			return nil, err // Handle other potential errors with os.Stat
-		}
-
-		// If it exists, add it to the validPaths list
-		// Only add file paths (excluding directories), but directories can be added if required.
-		if !info.IsDir() {
-			validPaths = append(validPaths, path)
-		}
-	}
-
-	return validPaths, nil
-}
-
 // GetAllFilePaths Given a root path returns all the file paths in the root directory
 // and its subdirectories, while respecting exclusion rules.
-func GetAllFilePaths(root string, prefixesToFilter []string, extensionsToKeep []string,
-	extensionsToIgnore []string, excludeList []string) ([]string, error) {
-
+func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFiles []string) ([]string, error) {
 	var filePaths []string
+
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		// Skip the root directory.
-		if path == root {
+
+		relPath, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+
+		// Skip the root directory
+		if relPath == "." {
 			return nil
 		}
-		// First filter out the paths that contain any of the prefixes in prefixesToFilter.
-		for _, prefixToFilter := range prefixesToFilter {
-			if strings.HasPrefix(filepath.Base(path), prefixToFilter) {
+
+		// Check if the path matches any exclude pattern
+		for _, pattern := range excludePatterns {
+			matched, err := doublestar.PathMatch(pattern, relPath)
+			if err != nil {
+				return err
+			}
+			if matched {
 				if d.IsDir() {
 					return filepath.SkipDir
 				}
 				return nil
 			}
 		}
-		// Filter out paths in the exclude list.
-		for _, excludePath := range excludeList {
-			if strings.HasPrefix(path, excludePath) {
-				if d.IsDir() {
-					return filepath.SkipDir
+
+		// Determine if the path should be included
+		include := len(includePatterns) == 0 // Include all if no include patterns
+		if len(includePatterns) > 0 {
+			include = false
+			for _, pattern := range includePatterns {
+				matched, err := doublestar.PathMatch(pattern, relPath)
+				if err != nil {
+					return err
 				}
-				return nil
+				if matched {
+					include = true
+					break
+				}
 			}
 		}
-		// Filter out the files that have the extensions in extensionsToIgnore.
-		for _, ext := range extensionsToIgnore {
-			if filepath.Ext(path) == ext {
-				return nil
-			}
-		}
-		// Process file based on extension filters.
-		if d.IsDir() || len(extensionsToKeep) == 0 {
+
+		if include {
 			filePaths = append(filePaths, path)
-			return nil
 		}
-		for _, ext := range extensionsToKeep {
-			if filepath.Ext(path) == ext {
-				filePaths = append(filePaths, path)
-				break
-			}
-		}
+
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
+	// Add explicit files, ensuring they are not duplicates
+	for _, file := range explicitFiles {
+		absPath, err := filepath.Abs(file)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := os.Stat(absPath); err == nil {
+			if !contains(filePaths, absPath) {
+				filePaths = append(filePaths, absPath)
+			}
+		}
+	}
+
 	return filePaths, nil
+}
+
+// Helper function to check if a slice contains a string
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
 
 // Given a file path, GetFileContent returns the content of the file.
