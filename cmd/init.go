@@ -6,18 +6,30 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // Define a default template configuration
 var defaultConfig = []byte(`# Configuration for the crev tool
 
-# specify the prefixes of files and directories to ignore (by default common configuration files are ignored)
-ignore-pre: # ex. [tests, readme.md, scripts]
-# specify the extensions of files to ignore 
-ignore-ext: # ex. [.go, .py, .js]
-# specify the extensions of files to include 
-include-ext: # ex. [.go, .py, .js]
+# Specify the glob patterns for files and directories to include (default is all files)
+include:
+  - "**/*"
+
+# Specify the glob patterns for files and directories to exclude
+exclude:
+  - ".git/**"
+  - "node_modules/**"
+  - "*.md"
+  - "**/*.test.go"
+  # Add other patterns as needed
+
+# Example:
+# include:
+#   - "src/**"
+#   - "**/*.go"
+# exclude:
+#   - "vendor/**"
+#   - "**/*.test.go"
 `)
 
 var initCmd = &cobra.Command{
@@ -26,9 +38,7 @@ var initCmd = &cobra.Command{
 	Long: `Generates a default configuration file (.crev-config.yaml) in the current directory.
 
 The configuration file includes:
-- API key for accessing the Code AI Review service (required for the "review" command)
-- File and directory ignore patterns when generating the project overview
-- File extensions to include when generating the project overview
+- Include and exclude patterns for files and directories when generating the project overview.
 
 You can modify this file as needed to suit your project's structure.
 `,
@@ -36,15 +46,15 @@ You can modify this file as needed to suit your project's structure.
 		configFileName := ".crev-config.yaml"
 
 		// Check if the config file already exists
-		if viper.ConfigFileUsed() != "" {
-			fmt.Println("Config file already exists at ", viper.ConfigFileUsed())
+		if _, err := os.Stat(configFileName); err == nil {
+			fmt.Println("Config file already exists at", configFileName)
 			os.Exit(1)
 		}
 
-		// Write the default config using Viper
+		// Write the default config
 		err := os.WriteFile(configFileName, defaultConfig, 0644)
 		if err != nil {
-			fmt.Println("Unable to write config file: ", err)
+			fmt.Println("Unable to write config file:", err)
 			os.Exit(1)
 		}
 
