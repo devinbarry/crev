@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -13,6 +14,9 @@ import (
 // while respecting inclusion and exclusion patterns.
 func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFiles []string) ([]string, error) {
 	var filePaths []string
+
+	// Preprocess exclude patterns to handle directories without needing /** and trailing slashes
+	processedExcludePatterns := preprocessExcludePatterns(root, excludePatterns)
 
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -30,7 +34,7 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 		}
 
 		// Check if the path matches any exclude pattern
-		for _, pattern := range excludePatterns {
+		for _, pattern := range processedExcludePatterns {
 			matched, err := doublestar.PathMatch(pattern, relPath)
 			if err != nil {
 				return err
@@ -83,6 +87,30 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 	}
 
 	return filePaths, nil
+}
+
+// preprocessExcludePatterns adjusts exclude patterns to handle directories and trailing slashes
+func preprocessExcludePatterns(root string, excludePatterns []string) []string {
+	var processedPatterns []string
+
+	for _, pattern := range excludePatterns {
+		adjustedPattern := pattern
+
+		// Remove trailing slashes for consistency
+		adjustedPattern = strings.TrimSuffix(adjustedPattern, string(os.PathSeparator))
+
+		// Check if the pattern corresponds to a directory
+		dirPath := filepath.Join(root, adjustedPattern)
+		if info, err := os.Stat(dirPath); err == nil && info.IsDir() {
+			// Append /** to match all contents within the directory
+			adjustedPattern = filepath.ToSlash(filepath.Clean(adjustedPattern)) + "/**"
+		}
+
+		// Add both the directory and its contents to the patterns
+		processedPatterns = append(processedPatterns, adjustedPattern)
+	}
+
+	return processedPatterns
 }
 
 // Helper function to check if a slice contains a string
