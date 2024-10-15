@@ -9,6 +9,30 @@ import (
 	"sync"
 )
 
+// GetExplicitFilePaths validates and returns the file paths from the given list that exist.
+func GetExplicitFilePaths(explicitPaths []string) ([]string, error) {
+	var validPaths []string
+
+	// Iterate through the provided paths and check if they exist.
+	for _, path := range explicitPaths {
+		// Check if the file or directory exists
+		info, err := os.Stat(path)
+		if os.IsNotExist(err) {
+			return nil, err // Return an error if the file or directory does not exist
+		} else if err != nil {
+			return nil, err // Handle other potential errors with os.Stat
+		}
+
+		// If it exists, add it to the validPaths list
+		// Only add file paths (excluding directories), but directories can be added if required.
+		if !info.IsDir() {
+			validPaths = append(validPaths, path)
+		}
+	}
+
+	return validPaths, nil
+}
+
 // GetAllFilePaths Given a root path returns all the file paths in the root directory
 // and its subdirectories.
 func GetAllFilePaths(root string, prefixesToFilter []string, extensionsToKeep []string,
