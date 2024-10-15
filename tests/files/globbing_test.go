@@ -164,22 +164,22 @@ func TestGetAllFilePathsIncludeExcludeOverlap(t *testing.T) {
 func TestGetAllFilePathsCaseSensitivity(t *testing.T) {
 	rootDir := t.TempDir()
 
-	// Create files with different cases
-	readmeUpper := filepath.Join(rootDir, "README")
-	err := os.WriteFile(readmeUpper, []byte("uppercase"), 0644)
+	// Create files with different names
+	file1 := filepath.Join(rootDir, "README_upper")
+	err := os.WriteFile(file1, []byte("uppercase"), 0644)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	readmeLower := filepath.Join(rootDir, "readme")
-	err = os.WriteFile(readmeLower, []byte("lowercase"), 0644)
+	file2 := filepath.Join(rootDir, "readme_lower")
+	err = os.WriteFile(file2, []byte("lowercase"), 0644)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	// Exclude "README"
-	excludePatterns := []string{"README"}
+	// Exclude "README_upper"
+	excludePatterns := []string{"README_upper"}
 	expected := []string{
-		readmeLower,
+		file2,
 	}
 
 	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, nil)

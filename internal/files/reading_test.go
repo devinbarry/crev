@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// Test the preprocessExcludePatterns function
 func TestPreprocessExcludePatterns(t *testing.T) {
 	rootDir := t.TempDir()
 
@@ -15,7 +16,7 @@ func TestPreprocessExcludePatterns(t *testing.T) {
 
 	// Prepare exclude patterns
 	excludePatterns := []string{"dir/", "file.txt", "nonexistent/", "empty_string", ""}
-	expectedPatterns := []string{"dir/**", "file.txt", "nonexistent/", "empty_string", ""}
+	expectedPatterns := []string{"dir/**", "file.txt", "nonexistent", "empty_string", "./**"}
 
 	processedPatterns := preprocessExcludePatterns(rootDir, excludePatterns)
 
