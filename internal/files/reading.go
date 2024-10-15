@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-// Given a root path returns all the file paths in the root directory
+// GetAllFilePaths Given a root path returns all the file paths in the root directory
 // and its subdirectories.
 func GetAllFilePaths(root string, prefixesToFilter []string, extensionsToKeep []string,
 	extensionsToIgnore []string) ([]string, error) {
@@ -66,7 +66,7 @@ func getFileContent(filePath string) (string, error) {
 	return string(dat), nil
 }
 
-// Given a list of file paths, GetContentMapOfFiles returns a map of file paths to their content.
+// GetContentMapOfFiles Given a list of file paths, returns a map of file paths to their content.
 func GetContentMapOfFiles(filePaths []string, maxConcurrency int) (map[string]string, error) {
 	var fileContentMap sync.Map
 	var wg sync.WaitGroup

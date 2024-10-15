@@ -5,10 +5,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/devinbarry/crev/internal/files"
+	"github.com/devinbarry/crev/internal/formatting"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/vossenwout/crev/internal/files"
-	"github.com/vossenwout/crev/internal/formatting"
 )
 
 var standardPrefixesToIgnore = []string{

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Fetch the latest version
-VERSION=$(curl --silent "https://api.github.com/repos/vossenwout/crev/releases/latest" | grep '"tag_name":' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
-BASE_URL="https://github.com/vossenwout/crev/releases/download/$VERSION"
+VERSION=$(curl --silent "https://api.github.com/repos/devinbarry/crev/releases/latest" | grep '"tag_name":' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+BASE_URL="https://github.com/devinbarry/crev/releases/download/$VERSION"
 
 # Detect OS and architecture
 OS=$(uname -s)

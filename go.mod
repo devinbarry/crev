@@ -1,4 +1,4 @@
-module github.com/vossenwout/crev
+module github.com/devinbarry/crev
 
 go 1.23.0
 

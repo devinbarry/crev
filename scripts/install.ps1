@@ -1,5 +1,5 @@
 # Fetch the latest version
-$versionUrl = "https://api.github.com/repos/vossenwout/crev/releases/latest"
+$versionUrl = "https://api.github.com/repos/devinbarry/crev/releases/latest"
 try {
     $response = Invoke-RestMethod -Uri $versionUrl
     $VERSION = $response.tag_name
@@ -8,7 +8,7 @@ try {
     return
 }
 
-$BASE_URL = "https://github.com/vossenwout/crev/releases/download/$VERSION"
+$BASE_URL = "https://github.com/devinbarry/crev/releases/download/$VERSION"
 
 # Detect architecture
 if ([System.Environment]::Is64BitOperatingSystem) {

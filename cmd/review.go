@@ -4,9 +4,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/devinbarry/crev/internal/review"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/vossenwout/crev/internal/review"
 )
 
 // reviewCmd represents the review command
