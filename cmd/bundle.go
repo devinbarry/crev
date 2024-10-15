@@ -87,14 +87,16 @@ var generateCmd = &cobra.Command{
 	Short: "Bundle your project into a single file",
 	Long: `Bundle your project into a single file, starting from the directory you are in.
 By default, only files explicitly specified via -f or --include-ext will have their contents included in the bundle, while the directory structure will be preserved for all files.
-Use the --all flag to include all file contents (excluding ignored ones).
+Use the --all flag to include all file contents (excluding ignored ones), and use --exclude to exclude specific files or directories.
 For more information see: https://crevcli.com/docs
 
 Example usage:
-crev bundle -f file1.go,file2.py,file3.md
-crev bundle --all
+crev bundle
 crev bundle --ignore-pre=tests,readme --ignore-ext=.txt 
 crev bundle --ignore-pre=tests,readme --include-ext=.go,.py,.js
+crev bundle --exclude=dir1,dir2 --exclude=file1.txt
+crev bundle -f file1.go,file2.py,file3.md
+crev bundle --all
 `,
 	Args: cobra.NoArgs,
 	Run: func(_ *cobra.Command, _ []string) {
@@ -110,6 +112,9 @@ crev bundle --ignore-pre=tests,readme --include-ext=.go,.py,.js
 		// Get the explicit file list flag (-f)
 		explicitFileList := viper.GetStringSlice("explicit-files")
 
+		// Get the exclude list
+		excludeList := viper.GetStringSlice("exclude")
+
 		// Get prefixes and extensions to ignore/include
 		prefixesToIgnore := viper.GetStringSlice("ignore-pre")
 		prefixesToIgnore = append(prefixesToIgnore, standardPrefixesToIgnore...)
@@ -119,9 +124,9 @@ crev bundle --ignore-pre=tests,readme --include-ext=.go,.py,.js
 
 		extensionsToInclude := viper.GetStringSlice("include-ext")
 
-		// Fetch the default (--all) file paths
+		// Fetch file paths
 		filePaths, err := files.GetAllFilePaths(rootDir, prefixesToIgnore,
-			extensionsToInclude, extensionsToIgnore)
+			extensionsToInclude, extensionsToIgnore, excludeList)
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -195,6 +200,9 @@ func init() {
 	// Add the -f flag (short for --explicit-files) to specify explicit files to include in the bundle
 	generateCmd.Flags().StringSliceP("explicit-files", "f", []string{}, "Comma-separated list of explicit file paths to include")
 
+	// Add the --exclude flag to exclude specific files or directories from the bundle
+	generateCmd.Flags().StringSlice("exclude", []string{}, "Comma-separated list of files or directories to exclude")
+
 	// Add existing flags for ignoring and including extensions/prefixes
 	generateCmd.Flags().StringSlice("ignore-pre", []string{}, "Comma-separated prefixes of file and dir names to ignore. Ex tests,readme")
 	generateCmd.Flags().StringSlice("ignore-ext", []string{}, "Comma-separated file extensions to ignore. Ex .txt,.md")
@@ -206,6 +214,10 @@ func init() {
 		log.Fatal(err)
 	}
 	err = viper.BindPFlag("explicit-files", generateCmd.Flags().Lookup("explicit-files"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = viper.BindPFlag("exclude", generateCmd.Flags().Lookup("exclude"))
 	if err != nil {
 		log.Fatal(err)
 	}

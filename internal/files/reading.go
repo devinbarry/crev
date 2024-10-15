@@ -34,9 +34,10 @@ func GetExplicitFilePaths(explicitPaths []string) ([]string, error) {
 }
 
 // GetAllFilePaths Given a root path returns all the file paths in the root directory
-// and its subdirectories.
+// and its subdirectories, while respecting exclusion rules.
 func GetAllFilePaths(root string, prefixesToFilter []string, extensionsToKeep []string,
-	extensionsToIgnore []string) ([]string, error) {
+	extensionsToIgnore []string, excludeList []string) ([]string, error) {
+
 	var filePaths []string
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -55,7 +56,16 @@ func GetAllFilePaths(root string, prefixesToFilter []string, extensionsToKeep []
 				return nil
 			}
 		}
-		// Filter out the files that have the extensions in extensionsToFilter.
+		// Filter out paths in the exclude list.
+		for _, excludePath := range excludeList {
+			if strings.HasPrefix(path, excludePath) {
+				if d.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+		}
+		// Filter out the files that have the extensions in extensionsToIgnore.
 		for _, ext := range extensionsToIgnore {
 			if filepath.Ext(path) == ext {
 				return nil
