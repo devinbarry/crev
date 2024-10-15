@@ -14,14 +14,17 @@ import (
 var standardPrefixesToIgnore = []string{
 	// ignore .git, .idea, .vscode, etc.
 	".",
+
+	// General project files
+	"license",
+	"LICENSE",
+	"DEVELOP.md",
+	"readme",
+	"README",
 	// ignore crev specific files
 	"crev",
 	// ignore go.mod, go.sum, etc.
 	"go",
-	"license",
-	// readme
-	"readme",
-	"README",
 	// poetry
 	"pyproject.toml",
 	"poetry.lock",
@@ -45,7 +48,9 @@ var standardPrefixesToIgnore = []string{
 	// next.js
 	"next.config",
 	"next-env",
+
 	// python
+	"requirements.txt",
 	"__pycache__",
 	"logs",
 	// java

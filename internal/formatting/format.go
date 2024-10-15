@@ -36,7 +36,7 @@ func buildTreeBranch(levelPrefix map[int]string, level int, isLast bool) string 
 	return branchPrefix.String() + branch
 }
 
-// Given a list of paths, generatePathTree returns a string representation of the
+// GeneratePathTree Given a list of paths, generatePathTree returns a string representation of the
 // directory structure.
 func GeneratePathTree(paths []string) string {
 	// Sort the paths lexicographically to ensure correct tree structure
@@ -53,7 +53,7 @@ func GeneratePathTree(paths []string) string {
 	return treeBuilder.String()
 }
 
-// Creates a string representation of the project.
+// CreateProjectString Creates a string representation of the project.
 func CreateProjectString(projectTree string, fileContentMap map[string]string) string {
 	var projectString strings.Builder
 	projectString.WriteString("Project Directory Structure:" + "\n")
@@ -68,6 +68,11 @@ func CreateProjectString(projectTree string, fileContentMap map[string]string) s
 
 	for _, fileName := range filePaths {
 		fileContent := fileContentMap[fileName]
+		// Skip displaying the file if it has no content
+		if strings.TrimSpace(fileContent) == "" {
+			continue
+		}
+		// Add file name and content if the file has non-empty content
 		projectString.WriteString("File: " + "\n")
 		projectString.WriteString(fileName + "\n")
 		projectString.WriteString("Content: " + "\n")
