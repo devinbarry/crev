@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+// node represents a node in a tree structure. Each node has a name (which could
+// be a directory or file name) and a map of children, where the key is the child
+// name and the value is a pointer to another node. This structure is used to
+// build and represent hierarchical directory paths, with each node corresponding
+// to a folder or file in the directory tree.
 type node struct {
 	name     string
 	children map[string]*node

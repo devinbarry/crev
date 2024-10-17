@@ -84,9 +84,9 @@ var standardExtensionsToIgnore = []string{
 }
 
 var generateCmd = &cobra.Command{
-	Use:   "bundle",
+	Use:   "bundle [path]",
 	Short: "Bundle your project into a single file",
-	Long: `Bundle your project into a single file, starting from the directory you are in.
+	Long: `Bundle your project into a single file, starting from the specified directory.
 By default, all files are included unless they match an exclude pattern.
 
 Use the --include and --exclude flags to specify patterns for files and directories to include or exclude.
@@ -95,20 +95,22 @@ Use the -f or --files flag to specify explicit files to include, overriding excl
 
 Example usage:
   crev bundle
+  crev bundle /path/to/project
   crev bundle --exclude='*.md' --exclude='test/*'
   crev bundle --include='src/**' --exclude='src/vendor/**'
   crev bundle -f file1.go,file2.py,file3.md
-  crev bundle --all
 `,
-	Args: cobra.NoArgs,
-	Run: func(_ *cobra.Command, _ []string) {
+	Args: cobra.MaximumNArgs(1),
+	Run: func(_ *cobra.Command, args []string) {
 		// Start timer
 		start := time.Now()
 
 		rootDir := "."
+		if len(args) > 0 {
+			rootDir = args[0]
+		}
 
 		// Get flags
-		bundleAll := viper.GetBool("all")
 		explicitFiles := viper.GetStringSlice("files")
 		includePatterns := viper.GetStringSlice("include")
 		excludePatterns := viper.GetStringSlice("exclude")
@@ -132,33 +134,18 @@ Example usage:
 			return
 		}
 
-		// Generate the project tree (structure)
-		projectTree := formatting.GeneratePathTree(filePaths)
-
-		var fileContentMap map[string]string
-		maxConcurrency := 100
-
-		// Determine which files to include content from
-		var contentFilePaths []string
-
-		if bundleAll {
-			// Include contents of all files in filePaths
-			contentFilePaths = filePaths
-		} else if len(explicitFiles) > 0 {
-			// Include contents of explicit files
-			contentFilePaths = explicitFiles
-		} else {
-			// No contents to include
-			contentFilePaths = []string{}
+		if len(filePaths) == 0 {
+			log.Fatal("No files found to bundle. Please check your include/exclude patterns and the specified path.")
 		}
 
-		if len(contentFilePaths) > 0 {
-			fileContentMap, err = files.GetContentMapOfFiles(contentFilePaths, maxConcurrency)
-			if err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			fileContentMap = make(map[string]string)
+		// Generate the project tree (structure)
+		projectTree := formatting.GeneratePathTree(filePaths)
+		maxConcurrency := 100
+
+		// Retrieve file contents
+		fileContentMap, err := files.GetContentMapOfFiles(filePaths, maxConcurrency)
+		if err != nil {
+			log.Fatal(err)
 		}
 
 		// Create the project string
@@ -186,9 +173,6 @@ Example usage:
 func init() {
 	rootCmd.AddCommand(generateCmd)
 
-	// Add the --all flag to include all files' content
-	generateCmd.Flags().Bool("all", false, "Include all file contents in the bundle (excluding files matched by exclude patterns)")
-
 	// Add the -f flag (short for --files) to specify explicit files to include in the bundle
 	generateCmd.Flags().StringSliceP("files", "f", []string{}, "Specify multiple file paths to include (e.g., --files file1.go --files file2.py)")
 
@@ -199,7 +183,6 @@ func init() {
 	generateCmd.Flags().StringSliceP("exclude", "E", []string{}, "Exclude files or directories matching these glob patterns (e.g., 'vendor/**', '**/*.test.go')")
 
 	// Bind flags to viper for easy retrieval
-	viper.BindPFlag("all", generateCmd.Flags().Lookup("all"))
 	viper.BindPFlag("files", generateCmd.Flags().Lookup("files"))
 	viper.BindPFlag("include", generateCmd.Flags().Lookup("include"))
 	viper.BindPFlag("exclude", generateCmd.Flags().Lookup("exclude"))
