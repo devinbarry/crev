@@ -26,10 +26,23 @@ For installation instructions and documentation, go to the [official docs](https
 * **Bundle your codebase (saved locally as a .txt file)**:
 
    ```bash
-   crev bundle
+   crev bundle .
    ```
 
-For full details on usage and configuration, visit the [official docs](https://crevcli.com/docs).
+* **Generate a `.crev-config.yaml` file to customise includes and excludes.**:
+
+   ```bash
+   crev init
+   ```
+
+The `crev bundle` command accepts include and exclude flags and supports file globbing for finer-grained control over
+which files are included in the project. If no path is specified as the first argument, it defaults to the current
+directory.
+
+  ```bash
+  crev bundle --exclude='*.md' --exclude='test/*'
+  crev bundle --include='src/**' --exclude='src/vendor/**'
+  ```
 
 
 ## Contributing
