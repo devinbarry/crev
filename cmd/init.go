@@ -17,11 +17,45 @@ include:
 
 # Specify the glob patterns for files and directories to exclude
 exclude:
+  # Generic exclude patterns
   - ".git/**"
+  - ".idea/**"
+  - ".vscode/**"
+  - "build/**"
+  - "dist/**"
+  - "out/**"
+  - "target/**"
+  - "bin/**"
   - "node_modules/**"
+  - "coverage/**"
+  - "public/**"
+  - "static/**"
+  - "vendor/**"
+  - "logs/**"
+
+  # Language-specific exclude patterns
+  - "*.pyc"
+  - "__pycache__/**"
+  - "*.class"
+  - "*.o"
+  - "*.exe"
+  - "*.dll"
+  - "*.so"
+  - "*.dylib"
+  - "*.jar"
+  - "*.gem"
+  - "*.php"
+
+  # Other generic patterns
+  - "*.lock"
+  - "*.log"
+  - "*.tmp"
+  - "*.bak"
+  - "*.swp"
+
+  # File types to exclude
   - "*.md"
-  - "**/*.test.go"
-  # Add other patterns as needed
+  - "*.test.go"
 
 # Example:
 # include:

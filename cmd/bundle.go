@@ -11,64 +11,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Standard prefixes to ignore
-var standardPrefixesToIgnore = []string{
-	// ignore .git, .idea, .vscode, etc.
-	".",
-
-	// General project files
-	"license",
-	"LICENSE",
-	"DEVELOP.md",
-	"readme",
-	"README",
-	// ignore crev specific files
-	"crev",
-	// ignore go.mod, go.sum, etc.
-	"go",
-	// poetry
-	"pyproject.toml",
-	"poetry.lock",
-	"venv",
-	// output files
-	"build",
-	"dist",
-	"out",
-	"target",
-	"bin",
-	// javascript
-	"node_modules",
-	"coverage",
-	"public",
-	"static",
-	"Thumbs.db",
-	"package",
-	"yarn.lock",
-	"tsconfig",
-	// next.js
-	"next.config",
-	"next-env",
-
-	// python
-	"requirements.txt",
-	"__pycache__",
-	"logs",
-	// java
-	"gradle",
-	// c++
-	"CMakeLists",
-	// ruby
-	"vendor",
-	"Gemfile",
-	// php
-	"composer",
-	// tailwind
-	"tailwind",
-	"postcss",
+// Specific prefixes to ignore
+var specificPrefixesToIgnore = []string{
+	"crev", // ignore crev specific files
 }
 
-// Standard extensions to ignore
-var standardExtensionsToIgnore = []string{
+// Specific extensions to ignore
+var specificExtensionsToIgnore = []string{
 	".jpeg",
 	".jpg",
 	".png",
@@ -81,6 +30,13 @@ var standardExtensionsToIgnore = []string{
 	".eot",
 	".ttf",
 	".otf",
+}
+
+// Specific filenames to ignore
+var specificFilesToIgnore = []string{
+	"Thumbs.db",
+	"poetry.lock",
+	"__pycache__",
 }
 
 var generateCmd = &cobra.Command{
@@ -115,16 +71,21 @@ Example usage:
 		includePatterns := viper.GetStringSlice("include")
 		excludePatterns := viper.GetStringSlice("exclude")
 
-		// Incorporate standard prefixes and extensions into exclude patterns
+		// Incorporate specific prefixes and extensions into exclude patterns
 		// Convert prefixes to exclude patterns
-		for _, prefix := range standardPrefixesToIgnore {
+		for _, prefix := range specificPrefixesToIgnore {
 			// Exclude directories and files starting with the prefix at any level
 			excludePatterns = append(excludePatterns, "**/"+prefix+"*", prefix+"*")
 		}
 
 		// Convert extensions to exclude patterns
-		for _, ext := range standardExtensionsToIgnore {
+		for _, ext := range specificExtensionsToIgnore {
 			excludePatterns = append(excludePatterns, "**/*"+ext)
+		}
+
+		// Add specific filenames to exclude patterns
+		for _, file := range specificFilesToIgnore {
+			excludePatterns = append(excludePatterns, "**/"+file)
 		}
 
 		// Fetch file paths
