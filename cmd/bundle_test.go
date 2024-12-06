@@ -274,11 +274,13 @@ exclude:
   - "*.md"
   - "node_modules/**"
 `
-	createFile(t, filepath.Join(tempDir, ".crev-config.yaml"), configContent)
+	configFilePath := filepath.Join(os.TempDir(), ".crev-config.yaml")
+	createFile(t, configFilePath, configContent)
+	defer os.Remove(configFilePath)
 
 	// Initialize Viper to read the config from tempDir
 	viper.Reset()
-	viper.SetConfigFile(filepath.Join(tempDir, ".crev-config.yaml"))
+	viper.SetConfigFile(configFilePath)
 	err := viper.ReadInConfig()
 	require.NoError(t, err, "Failed to read config file")
 
@@ -484,12 +486,14 @@ include:
   - "**/*"
 exclude: []
 `
-	createFile(t, filepath.Join(os.TempDir(), ".crev-config.yaml"), configContent)
-	defer os.Remove(filepath.Join(os.TempDir(), ".crev-config.yaml"))
+
+	configFilePath := filepath.Join(os.TempDir(), ".crev-config.yaml")
+	createFile(t, configFilePath, configContent)
+	defer os.Remove(configFilePath)
 
 	// Initialize Viper to read the config from TempDir
 	viper.Reset()
-	viper.SetConfigFile(filepath.Join(os.TempDir(), ".crev-config.yaml"))
+	viper.SetConfigFile(configFilePath)
 	err := viper.ReadInConfig()
 	require.NoError(t, err, "Failed to read config file")
 

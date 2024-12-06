@@ -75,13 +75,19 @@ Example usage:
 			rootDir = args[0]
 		}
 
+		// Check if rootDir exists before proceeding
+		if _, err := os.Stat(rootDir); os.IsNotExist(err) {
+			errMsg := "no files found to bundle"
+			log.Print(errMsg)
+			return fmt.Errorf("%s. Please check your include/exclude patterns and the specified path", errMsg)
+		}
+
 		// Get flags
 		explicitFiles := viper.GetStringSlice("files")
 		includePatterns := viper.GetStringSlice("include")
 		excludePatterns := viper.GetStringSlice("exclude")
 
-		// Incorporate specific prefixes and extensions into exclude patterns
-		// Convert prefixes to exclude patterns
+		// Add excludes for prefixes
 		for _, prefix := range specificPrefixesToIgnore {
 			// Exclude directories and files starting with the prefix at any level
 			excludePatterns = append(excludePatterns, "**/"+prefix+"*", prefix+"*")
@@ -124,23 +130,16 @@ Example usage:
 
 		// Create and save the project string
 		projectString := formatting.CreateProjectString(projectTree, fileContentMap)
-
-		outputFile := "crev-project.txt"
-		// Save the project string to a file
-		err = files.SaveStringToFile(projectString, outputFile)
-		if err != nil {
-			log.Fatal(err)
+		if err := files.SaveStringToFile(projectString, outputFile); err != nil {
+			return fmt.Errorf("error saving file: %w", err)
 		}
 
 		// Log success
-		log.Println("Project overview successfully saved to: " + outputFile)
+		log.Printf("Project overview successfully saved to: %s", outputFile)
+		log.Printf("Estimated token count: %d - %d tokens", len(projectString)/4, len(projectString)/3)
+		log.Printf("Execution time: %s", time.Since(start))
 
-		// Estimate number of tokens
-		log.Printf("Estimated token count: %d - %d tokens",
-			len(projectString)/4, len(projectString)/3)
-
-		elapsed := time.Since(start)
-		log.Printf("Execution time: %s", elapsed)
+		return nil
 	},
 }
 
