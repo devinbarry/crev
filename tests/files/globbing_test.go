@@ -8,6 +8,20 @@ import (
 	"testing"
 )
 
+// Helper function to create a file with specified content.
+// Ensures that the file is created successfully.
+func createFile(t *testing.T, path string, content string) {
+	err := os.WriteFile(path, []byte(content), 0644)
+	require.NoError(t, err, "Failed to create file %s", path)
+}
+
+// Helper function to create a directory.
+// Ensures that the directory is created successfully.
+func createDir(t *testing.T, path string) {
+	err := os.MkdirAll(path, 0755)
+	require.NoError(t, err, "Failed to create directory %s", path)
+}
+
 // TestGetAllFilePathsExcludeDirTrailingSlash tests that directories are correctly excluded
 // regardless of whether the exclude pattern has a trailing slash or not.
 func TestGetAllFilePathsExcludeDirTrailingSlash(t *testing.T) {
@@ -15,12 +29,9 @@ func TestGetAllFilePathsExcludeDirTrailingSlash(t *testing.T) {
 
 	// Create directories and files
 	dirPath := filepath.Join(rootDir, "dir")
-	err := os.Mkdir(dirPath, 0755)
-	require.NoError(t, err, "Failed to create directory")
-
+	createDir(t, dirPath)
 	fileInDir := filepath.Join(dirPath, "file.txt")
-	err = os.WriteFile(fileInDir, []byte("content"), 0644)
-	require.NoError(t, err, "Failed to create file")
+	createFile(t, fileInDir, "content")
 
 	// Test excluding directory without trailing slash
 	excludePatterns := []string{"dir"}
@@ -42,16 +53,12 @@ func TestGetAllFilePathsExcludeFileVsDirectory(t *testing.T) {
 
 	// Create a file and a directory with similar names
 	filePath := filepath.Join(rootDir, "build")
-	err := os.WriteFile(filePath, []byte("file content"), 0644)
-	require.NoError(t, err, "Failed to create file")
+	createFile(t, filePath, "file content")
 
 	dirPath := filepath.Join(rootDir, "build_dir")
-	err = os.Mkdir(dirPath, 0755)
-	require.NoError(t, err, "Failed to create directory")
-
+	createDir(t, dirPath)
 	fileInDir := filepath.Join(dirPath, "file.txt")
-	err = os.WriteFile(fileInDir, []byte("dir file content"), 0644)
-	require.NoError(t, err, "Failed to create file in directory")
+	createFile(t, fileInDir, "dir file content")
 
 	// Exclude "build" which is a file
 	excludePatterns := []string{"build"}
@@ -73,12 +80,9 @@ func TestGetAllFilePathsExcludeHiddenDirectory(t *testing.T) {
 
 	// Create a hidden directory and a file inside it
 	hiddenDir := filepath.Join(rootDir, ".git")
-	err := os.Mkdir(hiddenDir, 0755)
-	require.NoError(t, err, "Failed to create hidden directory")
-
+	createDir(t, hiddenDir)
 	configFile := filepath.Join(hiddenDir, "config")
-	err = os.WriteFile(configFile, []byte("config content"), 0644)
-	require.NoError(t, err, "Failed to create config file")
+	createFile(t, configFile, "config content")
 
 	// Exclude ".git/" directory
 	excludePatterns := []string{".git/"}
@@ -94,12 +98,10 @@ func TestGetAllFilePathsIncludeExcludeOverlap(t *testing.T) {
 
 	// Create two .go files
 	file1 := filepath.Join(rootDir, "file1.go")
-	err := os.WriteFile(file1, []byte("content1"), 0644)
-	require.NoError(t, err, "Failed to create file1")
+	createFile(t, file1, "content1")
 
 	file2 := filepath.Join(rootDir, "file2.go")
-	err = os.WriteFile(file2, []byte("content2"), 0644)
-	require.NoError(t, err, "Failed to create file2")
+	createFile(t, file2, "content2")
 
 	// Include all .go files, but exclude file2.go
 	includePatterns := []string{"**/*.go"}
@@ -117,12 +119,10 @@ func TestGetAllFilePathsCaseSensitivity(t *testing.T) {
 
 	// Create files with different cases
 	file1 := filepath.Join(rootDir, "README_upper")
-	err := os.WriteFile(file1, []byte("uppercase"), 0644)
-	require.NoError(t, err, "Failed to create uppercase file")
+	createFile(t, file1, "uppercase")
 
 	file2 := filepath.Join(rootDir, "readme_lower")
-	err = os.WriteFile(file2, []byte("lowercase"), 0644)
-	require.NoError(t, err, "Failed to create lowercase file")
+	createFile(t, file2, "lowercase")
 
 	// Exclude "README_upper"
 	excludePatterns := []string{"README_upper"}
@@ -140,8 +140,7 @@ func TestGetAllFilePathsExcludeNonExistingDirectory(t *testing.T) {
 
 	// Create a test file
 	filePath := filepath.Join(rootDir, "file.txt")
-	err := os.WriteFile(filePath, []byte("content"), 0644)
-	require.NoError(t, err, "Failed to create file")
+	createFile(t, filePath, "content")
 
 	// Exclude a non-existing directory
 	excludePatterns := []string{"nonexistent_dir/"}
@@ -159,8 +158,7 @@ func TestGetAllFilePathsExcludeEmptyPattern(t *testing.T) {
 
 	// Create a test file
 	filePath := filepath.Join(rootDir, "file.txt")
-	err := os.WriteFile(filePath, []byte("content"), 0644)
-	require.NoError(t, err, "Failed to create file")
+	createFile(t, filePath, "content")
 
 	// Test with an empty exclude pattern
 	excludePatterns := []string{""}
@@ -178,16 +176,13 @@ func TestGetAllFilePathsExcludeSymlink(t *testing.T) {
 
 	// Create a target directory and file
 	targetDir := filepath.Join(rootDir, "target")
-	err := os.Mkdir(targetDir, 0755)
-	require.NoError(t, err, "Failed to create target directory")
-
+	createDir(t, targetDir)
 	targetFile := filepath.Join(targetDir, "file.txt")
-	err = os.WriteFile(targetFile, []byte("content"), 0644)
-	require.NoError(t, err, "Failed to create target file")
+	createFile(t, targetFile, "content")
 
 	// Create a symlink to the directory
 	symlinkDir := filepath.Join(rootDir, "symlink")
-	err = os.Symlink(targetDir, symlinkDir)
+	err := os.Symlink(targetDir, symlinkDir)
 	require.NoError(t, err, "Failed to create symlink")
 
 	// Exclude the symlink
