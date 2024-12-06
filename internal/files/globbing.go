@@ -18,35 +18,54 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 		return nil, err
 	}
 
-	// Track both explicit files and their parent directories
-	explicitPaths := make(map[string]bool)
-	var filePaths []string
+	processedExcludePatterns := preprocessExcludePatterns(absRoot, excludePatterns)
 
-	// First, process explicit files and their parent directories
+	// Handle explicit files: add them to the results and keep track of them
+	filePaths, explicitPaths, err := collectExplicitFiles(absRoot, explicitFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	// Now walk the directory and handle non-explicit files
+	collectedPaths, err := walkAndCollectPaths(absRoot, includePatterns, processedExcludePatterns, explicitPaths, filePaths)
+	if err != nil {
+		return nil, err
+	}
+
+	return collectedPaths, nil
+}
+
+// collectExplicitFiles adds explicit files (those specified by --files) to the output list,
+// ensuring they exist and tracking them for later checks.
+// This function returns the initial file list (with explicit files) and a map of explicit paths.
+func collectExplicitFiles(absRoot string, explicitFiles []string) (filePaths []string, explicitPaths map[string]bool, err error) {
+	explicitPaths = make(map[string]bool)
+
+	// First, add explicit files and track their paths
 	for _, file := range explicitFiles {
 		absPath, err := filepath.Abs(file)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if _, err := os.Stat(absPath); err == nil {
-			// Add the file itself
 			explicitPaths[absPath] = true
 			filePaths = append(filePaths, absPath)
-
-			// Add all parent directories up to the root
-			dir := filepath.Dir(absPath)
-			for dir != absRoot && dir != "/" && dir != "." {
-				explicitPaths[dir] = true
-				filePaths = append(filePaths, dir)
-				dir = filepath.Dir(dir)
-			}
 		}
 	}
 
-	processedExcludePatterns := preprocessExcludePatterns(absRoot, excludePatterns)
+	return filePaths, explicitPaths, nil
+}
 
-	// Walk the directory
-	err = filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, err error) error {
+// walkAndCollectPaths walks the directory from absRoot, applying exclude patterns, include patterns,
+// and considering explicit files. It returns a full list of file paths that meet the criteria.
+func walkAndCollectPaths(absRoot string, includePatterns, processedExcludePatterns []string, explicitPaths map[string]bool, initialFiles []string) ([]string, error) {
+	filePaths := append([]string(nil), initialFiles...) // copy to avoid mutation
+	seenPaths := make(map[string]bool)
+	for _, path := range filePaths {
+		seenPaths[path] = true
+	}
+
+	err := filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -56,8 +75,8 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 			return nil
 		}
 
-		// If this is an explicit path or its parent, we've already handled it
-		if explicitPaths[path] {
+		// Skip if we've already seen this path (explicit files)
+		if seenPaths[path] {
 			return nil
 		}
 
@@ -66,41 +85,40 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 		if err != nil {
 			return err
 		}
+		relPath = filepath.ToSlash(relPath) // Convert to forward slashes for consistent pattern matching
 
-		// Convert to forward slashes for consistent pattern matching
-		relPath = filepath.ToSlash(relPath)
+		// Determine if this path is excluded and if it's a parent of an explicit file
+		excluded, isParentOfExplicit, err := isExcludedPath(absRoot, relPath, processedExcludePatterns, explicitPaths)
+		if err != nil {
+			return err
+		}
 
-		// Check exclude patterns
-		for _, pattern := range processedExcludePatterns {
-			matched, err := doublestar.PathMatch(pattern, relPath)
-			if err != nil {
-				return err
+		// If this directory (or file) is excluded and not a parent of an explicit file, skip it
+		if excluded && !isParentOfExplicit {
+			if d.IsDir() {
+				return filepath.SkipDir
 			}
-			if matched {
-				if d.IsDir() {
-					return filepath.SkipDir
-				}
-				return nil
-			}
+			return nil
+		}
+
+		// If this is a directory that's excluded but is a parent of an explicit file,
+		// we do not add it to the filePaths, but we do continue traversal (do not skip).
+		// We only want explicit files, not the directory itself.
+		if d.IsDir() && excluded && isParentOfExplicit {
+			// Don't add directory to filePaths, just continue walking
+			return nil
 		}
 
 		// Check include patterns
-		include := len(includePatterns) == 0 // Include everything if no patterns specified
-		if len(includePatterns) > 0 {
-			for _, pattern := range includePatterns {
-				matched, err := doublestar.PathMatch(pattern, relPath)
-				if err != nil {
-					return err
-				}
-				if matched {
-					include = true
-					break
-				}
-			}
+		include, err := shouldIncludePath(relPath, includePatterns)
+		if err != nil {
+			return err
 		}
 
+		// If we are including this path, add it to the results
 		if include {
 			filePaths = append(filePaths, path)
+			seenPaths[path] = true
 		}
 
 		return nil
@@ -111,6 +129,69 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 	}
 
 	return filePaths, nil
+}
+
+// isExcludedPath checks if any parent directory of relPath (including itself) matches the exclude patterns.
+// It returns whether the path is excluded and whether it is a parent of an explicit file.
+//
+// If a directory is excluded but also a parent directory of an explicit file, we set isParentOfExplicit = true.
+// This allows traversal of the directory without adding it to the output, so that explicit files can be found.
+func isExcludedPath(absRoot, relPath string, processedExcludePatterns []string, explicitPaths map[string]bool) (bool, bool, error) {
+	dirPath := relPath
+	excluded := false
+	isParentOfExplicit := false
+
+	for dirPath != "." {
+		for _, pattern := range processedExcludePatterns {
+			matched, err := doublestar.PathMatch(pattern, dirPath)
+			if err != nil {
+				return false, false, err
+			}
+			if matched {
+				excluded = true
+				// Check if this excluded directory is a parent of any explicit file
+				absDir := filepath.Join(absRoot, dirPath)
+				for explicit := range explicitPaths {
+					if strings.HasPrefix(explicit, absDir+string(os.PathSeparator)) {
+						isParentOfExplicit = true
+						break
+					}
+				}
+				if isParentOfExplicit {
+					// Even though it's excluded, it's a parent of explicit file
+					// We'll let traversal continue, but we won't add this directory to filePaths.
+					return excluded, isParentOfExplicit, nil
+				} else {
+					// This directory is excluded and not a parent of any explicit file.
+					// We can return now knowing it's excluded without explicit override.
+					return excluded, isParentOfExplicit, nil
+				}
+			}
+		}
+		dirPath = filepath.Dir(dirPath)
+	}
+
+	return excluded, isParentOfExplicit, nil
+}
+
+// shouldIncludePath checks whether a path should be included based on the provided includePatterns.
+// If no includePatterns are provided, everything is included by default.
+func shouldIncludePath(relPath string, includePatterns []string) (bool, error) {
+	// Include everything if no patterns specified
+	include := len(includePatterns) == 0
+	if len(includePatterns) > 0 {
+		for _, pattern := range includePatterns {
+			matched, err := doublestar.PathMatch(pattern, relPath)
+			if err != nil {
+				return false, err
+			}
+			if matched {
+				include = true
+				break
+			}
+		}
+	}
+	return include, nil
 }
 
 // preprocessExcludePatterns adjusts exclude patterns to handle directories and trailing slashes.
