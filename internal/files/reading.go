@@ -18,29 +18,38 @@ import (
 // This function returns all paths as absolute paths to maintain consistency with tests that
 // expect absolute paths.
 func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFiles []string) ([]string, error) {
+	// Canonicalize the root directory to avoid symlink issues (e.g., /var vs /private/var)
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		return nil, err
+	}
+	absRoot, err = filepath.EvalSymlinks(absRoot)
+	if err != nil {
+		return nil, err
+	}
+
 	var filePaths []string
 
-	// Preprocess exclude patterns to handle directories without needing /** and trailing slashes
-	processedExcludePatterns := preprocessExcludePatterns(root, excludePatterns)
+	processedExcludePatterns := preprocessExcludePatterns(absRoot, excludePatterns)
 
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	// Walk the directory using the canonical root
+	err = filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Compute relative path only for matching against patterns,
-		// but we will store absolute paths in filePaths.
-		relPath, err := filepath.Rel(root, path)
+		// Compute the relative path from the canonical root for pattern matching
+		relPath, err := filepath.Rel(absRoot, path)
 		if err != nil {
 			return err
 		}
 
-		// Skip the root directory
+		// Skip the root directory itself
 		if relPath == "." {
 			return nil
 		}
 
-		// Check if the path matches any exclude pattern
+		// Check exclude patterns
 		for _, pattern := range processedExcludePatterns {
 			matched, err := doublestar.PathMatch(pattern, relPath)
 			if err != nil {
@@ -54,8 +63,8 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 			}
 		}
 
-		// Determine if the path should be included
-		include := len(includePatterns) == 0 // Include all if no include patterns
+		// Check include patterns
+		include := len(includePatterns) == 0
 		if len(includePatterns) > 0 {
 			include = false
 			for _, pattern := range includePatterns {
@@ -71,11 +80,12 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 		}
 
 		if include {
-			absPath, err := filepath.Abs(path)
+			// Canonicalize the path to ensure consistency
+			canonicalPath, err := filepath.EvalSymlinks(path)
 			if err != nil {
 				return err
 			}
-			filePaths = append(filePaths, absPath)
+			filePaths = append(filePaths, canonicalPath)
 		}
 
 		return nil
@@ -84,10 +94,14 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 		return nil, err
 	}
 
-	// Explicit files are added after all excludes and includes have been applied,
-	// ensuring that explicitly specified files (via --files) override any exclude patterns.
+	// Add explicit files after processing include/exclude
+	// Explicit files override exclude patterns.
 	for _, file := range explicitFiles {
 		absPath, err := filepath.Abs(file)
+		if err != nil {
+			return nil, err
+		}
+		absPath, err = filepath.EvalSymlinks(absPath)
 		if err != nil {
 			return nil, err
 		}
