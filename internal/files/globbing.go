@@ -10,9 +10,7 @@ import (
 
 // GetAllFilePaths returns all the file paths in the root directory and its subdirectories,
 // while respecting inclusion and exclusion patterns.
-// After collecting files from walking the directory and applying include/exclude patterns,
-// explicit files provided by the user with the --files flag are added. This ensures that
-// explicitly specified files (via --files) override any exclude patterns.
+// Explicit files (provided by --files flag) override any exclude patterns.
 func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFiles []string) ([]string, error) {
 	// Normalize root path to absolute path
 	absRoot, err := filepath.Abs(root)
@@ -20,21 +18,32 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 		return nil, err
 	}
 
+	// Track both explicit files and their parent directories
+	explicitPaths := make(map[string]bool)
 	var filePaths []string
-	processedExcludePatterns := preprocessExcludePatterns(absRoot, excludePatterns)
 
-	// First, handle explicit files as they should override exclude patterns
-	explicitFilePaths := make(map[string]bool)
+	// First, process explicit files and their parent directories
 	for _, file := range explicitFiles {
 		absPath, err := filepath.Abs(file)
 		if err != nil {
 			return nil, err
 		}
 		if _, err := os.Stat(absPath); err == nil {
-			explicitFilePaths[absPath] = true
+			// Add the file itself
+			explicitPaths[absPath] = true
 			filePaths = append(filePaths, absPath)
+
+			// Add all parent directories up to the root
+			dir := filepath.Dir(absPath)
+			for dir != absRoot && dir != "/" && dir != "." {
+				explicitPaths[dir] = true
+				filePaths = append(filePaths, dir)
+				dir = filepath.Dir(dir)
+			}
 		}
 	}
+
+	processedExcludePatterns := preprocessExcludePatterns(absRoot, excludePatterns)
 
 	// Walk the directory
 	err = filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, err error) error {
@@ -47,8 +56,8 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 			return nil
 		}
 
-		// If this is an explicit file, we've already handled it
-		if explicitFilePaths[path] {
+		// If this is an explicit path or its parent, we've already handled it
+		if explicitPaths[path] {
 			return nil
 		}
 
@@ -61,7 +70,7 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 		// Convert to forward slashes for consistent pattern matching
 		relPath = filepath.ToSlash(relPath)
 
-		// Check exclude patterns first
+		// Check exclude patterns
 		for _, pattern := range processedExcludePatterns {
 			matched, err := doublestar.PathMatch(pattern, relPath)
 			if err != nil {
