@@ -233,7 +233,7 @@ exclude:
 	assert.Contains(t, string(content), "build_something.py", "build_something.py should be included")
 
 	// Check that excluded files are not present
-	assert.NotContains(t, string(content), "images/image.png", "PNG files should always be excluded")
+	assert.NotContains(t, string(content), "images/image.png", "PNG files should be excluded (unless explicitly included)")
 	assert.NotContains(t, string(content), "exclude.md", "exclude.md should be excluded")
 	assert.NotContains(t, string(content), ".git/config", ".git/config should be excluded")
 	assert.NotContains(t, string(content), "node_modules/module.js", "node_modules/module.js should be excluded")
@@ -243,7 +243,7 @@ exclude:
 	assert.Contains(t, logOutput, "Project overview successfully saved to:", "Should log success message")
 }
 
-// TestBundleCommandWithExplicitFiles tests the bundle command's ability to include explicit files even if they match exclude patterns.
+// TestBundleCommandWithExplicitFiles tests that explicitly included files are included even if they match exclude patterns.
 func TestBundleCommandWithExplicitFiles(t *testing.T) {
 	// Setup temporary directory
 	tempDir := t.TempDir()
@@ -265,7 +265,7 @@ func TestBundleCommandWithExplicitFiles(t *testing.T) {
 	createDir(t, filepath.Join(tempDir, "images"))
 	createFile(t, filepath.Join(tempDir, "images", "image.png"), "PNGDATA")
 
-	// Create a default config excluding *.md
+	// Create a default config excluding *.md files
 	configContent := `
 include:
   - "**/*"
@@ -274,9 +274,8 @@ exclude:
   - "*.md"
   - "node_modules/**"
 `
-	configFilePath := filepath.Join(os.TempDir(), ".crev-config.yaml")
+	configFilePath := filepath.Join(tempDir, ".crev-config.yaml")
 	createFile(t, configFilePath, configContent)
-	defer os.Remove(configFilePath)
 
 	// Initialize Viper to read the config from tempDir
 	viper.Reset()
@@ -301,7 +300,7 @@ exclude:
 		require.NoError(t, err, "Failed to change back to original working directory")
 	})
 
-	// Set arguments for the bundle command with explicit files
+	// Set arguments for the bundle command with explicit files (exclude.md)
 	rootCmd.SetArgs([]string{"bundle", ".", "--files", "exclude.md"})
 	err = rootCmd.Execute()
 	require.NoError(t, err, "Bundle command execution failed")
@@ -317,14 +316,70 @@ exclude:
 
 	assert.Contains(t, string(content), "include.go", "include.go should be included")
 	assert.Contains(t, string(content), "build_something.py", "build_something.py should be included")
-	// FIXME when we explicitly include a file, it should overwrite the config
-	// Check that explicitly included file is present despite being excluded by pattern
-	assert.NotContains(t, string(content), "exclude.md", "*.md files are excluded by the config and should not show up")
-	assert.NotContains(t, string(content), "images/image.png", "PNG files should always be excluded")
+
+	// Explicitly included file should be included despite being excluded by pattern
+	assert.Contains(t, string(content), "exclude.md", "Explicitly included file should override the config exclusion")
+
+	// PNG files remain excluded unless explicitly included
+	assert.NotContains(t, string(content), "images/image.png", "PNG files should be excluded since we didn't explicitly include them")
 
 	// Check log messages for success
 	logOutput := logBuf.String()
 	assert.Contains(t, logOutput, "Project overview successfully saved to:", "Should log success message")
+}
+
+// New test to ensure that explicitly included files always override exclude patterns
+func TestBundleCommandWithExplicitFilesOverridesExclude(t *testing.T) {
+	// Setup temporary directory
+	tempDir := t.TempDir()
+
+	// Create a file that would normally be excluded by pattern
+	createFile(t, filepath.Join(tempDir, "image.png"), "PNGDATA")
+
+	// Create a config that excludes all .png files
+	configContent := `
+include:
+  - "**/*"
+
+exclude:
+  - "*.png"
+`
+	createFile(t, filepath.Join(tempDir, ".crev-config.yaml"), configContent)
+
+	viper.Reset()
+	viper.SetConfigFile(filepath.Join(tempDir, ".crev-config.yaml"))
+	err := viper.ReadInConfig()
+	require.NoError(t, err, "Failed to read config file")
+
+	var logBuf bytes.Buffer
+	log.SetOutput(&logBuf)
+	defer log.SetOutput(os.Stderr)
+
+	originalDir, err := os.Getwd()
+	require.NoError(t, err, "Failed to get current working directory")
+
+	err = os.Chdir(tempDir)
+	require.NoError(t, err, "Failed to change working directory to tempDir")
+
+	t.Cleanup(func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err, "Failed to change back to original working directory")
+	})
+
+	// Explicitly include the PNG file even though it's excluded by the pattern
+	rootCmd.SetArgs([]string{"bundle", ".", "--files", "image.png"})
+	err = rootCmd.Execute()
+	require.NoError(t, err, "Bundle command execution failed")
+
+	outputFile := "crev-project.txt"
+	_, err = os.Stat(outputFile)
+	require.NoError(t, err, "Expected output file %s to exist", outputFile)
+
+	content, err := os.ReadFile(outputFile)
+	require.NoError(t, err, "Failed to read output file")
+
+	// The explicitly included PNG should appear in the final output
+	assert.Contains(t, string(content), "image.png", "Explicitly included PNG should appear despite exclude patterns.")
 }
 
 // TestBundleCommandWithNoFiles tests the bundle command when no files are included due to exclude patterns.
@@ -486,7 +541,6 @@ include:
   - "**/*"
 exclude: []
 `
-
 	configFilePath := filepath.Join(os.TempDir(), ".crev-config.yaml")
 	createFile(t, configFilePath, configContent)
 	defer os.Remove(configFilePath)

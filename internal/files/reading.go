@@ -1,4 +1,3 @@
-// Contains code to read the content of files and directories.
 package files
 
 import (
@@ -12,6 +11,12 @@ import (
 
 // GetAllFilePaths returns all the file paths in the root directory and its subdirectories,
 // while respecting inclusion and exclusion patterns.
+// After collecting files from walking the directory and applying include/exclude patterns,
+// explicit files provided by the user with the --files flag are added. This ensures that
+// explicitly specified files (via --files) override any exclude patterns.
+//
+// This function returns all paths as absolute paths to maintain consistency with tests that
+// expect absolute paths.
 func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFiles []string) ([]string, error) {
 	var filePaths []string
 
@@ -23,6 +28,8 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 			return err
 		}
 
+		// Compute relative path only for matching against patterns,
+		// but we will store absolute paths in filePaths.
 		relPath, err := filepath.Rel(root, path)
 		if err != nil {
 			return err
@@ -64,7 +71,11 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 		}
 
 		if include {
-			filePaths = append(filePaths, path)
+			absPath, err := filepath.Abs(path)
+			if err != nil {
+				return err
+			}
+			filePaths = append(filePaths, absPath)
 		}
 
 		return nil
@@ -73,7 +84,8 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 		return nil, err
 	}
 
-	// Add explicit files, ensuring they are not duplicates
+	// Explicit files are added after all excludes and includes have been applied,
+	// ensuring that explicitly specified files (via --files) override any exclude patterns.
 	for _, file := range explicitFiles {
 		absPath, err := filepath.Abs(file)
 		if err != nil {
@@ -123,7 +135,7 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-// Given a file path, GetFileContent returns the content of the file.
+// getFileContent returns the content of the given file.
 func getFileContent(filePath string) (string, error) {
 	dat, err := os.ReadFile(filePath)
 	if err != nil {
@@ -132,7 +144,7 @@ func getFileContent(filePath string) (string, error) {
 	return string(dat), nil
 }
 
-// GetContentMapOfFiles Given a list of file paths, returns a map of file paths to their content.
+// GetContentMapOfFiles returns a map of file paths to their content.
 func GetContentMapOfFiles(filePaths []string, maxConcurrency int) (map[string]string, error) {
 	var fileContentMap sync.Map
 	var wg sync.WaitGroup

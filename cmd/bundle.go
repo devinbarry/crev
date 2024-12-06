@@ -41,7 +41,6 @@ var specificExtensionsToIgnore = []string{
 var specificFilesToIgnore = []string{
 	"Thumbs.db",
 	"poetry.lock",
-	"__pycache__",
 	"go.mod",
 	"go.sum",
 }
