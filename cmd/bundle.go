@@ -2,7 +2,10 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/devinbarry/crev/internal/files"
@@ -57,9 +60,15 @@ Example usage:
   crev bundle -f file1.go,file2.py,file3.md
 `,
 	Args: cobra.MaximumNArgs(1),
-	Run: func(_ *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		// Start timer
 		start := time.Now()
+
+		// Get current working directory for output file path
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get working directory: %w", err)
+		}
 
 		rootDir := "."
 		if len(args) > 0 {
@@ -88,15 +97,19 @@ Example usage:
 			excludePatterns = append(excludePatterns, "**/"+file)
 		}
 
+		// Create output file in current working directory
+		outputFile := filepath.Join(cwd, "crev-project.txt")
+
 		// Fetch file paths
 		filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, explicitFiles)
 		if err != nil {
-			log.Fatal(err)
-			return
+			return fmt.Errorf("error getting file paths: %w", err)
 		}
 
 		if len(filePaths) == 0 {
-			log.Fatal("No files found to bundle. Please check your include/exclude patterns and the specified path.")
+			errMsg := "no files found to bundle"
+			log.Print(errMsg)
+			return fmt.Errorf("%s. Please check your include/exclude patterns and the specified path", errMsg)
 		}
 
 		// Generate the project tree (structure)
@@ -106,10 +119,10 @@ Example usage:
 		// Retrieve file contents
 		fileContentMap, err := files.GetContentMapOfFiles(filePaths, maxConcurrency)
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("error getting file contents: %w", err)
 		}
 
-		// Create the project string
+		// Create and save the project string
 		projectString := formatting.CreateProjectString(projectTree, fileContentMap)
 
 		outputFile := "crev-project.txt"
