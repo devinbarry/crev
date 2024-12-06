@@ -56,14 +56,6 @@ exclude:
   # File types to exclude
   - "*.md"
   - "*.test.go"
-
-# Example:
-# include:
-#   - "src/**"
-#   - "**/*.go"
-# exclude:
-#   - "vendor/**"
-#   - "**/*.test.go"
 `)
 
 var initCmd = &cobra.Command{

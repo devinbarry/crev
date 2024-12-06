@@ -16,6 +16,8 @@ import (
 
 // Specific prefixes to ignore
 var specificPrefixesToIgnore = []string{
+	// ignore .git, .idea, .vscode, etc.
+	".",
 	"crev", // ignore crev specific files
 }
 
@@ -40,6 +42,8 @@ var specificFilesToIgnore = []string{
 	"Thumbs.db",
 	"poetry.lock",
 	"__pycache__",
+	"go.mod",
+	"go.sum",
 }
 
 var generateCmd = &cobra.Command{
