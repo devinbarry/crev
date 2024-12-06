@@ -8,20 +8,6 @@ import (
 	"testing"
 )
 
-// Helper function to create a file with specified content.
-// Ensures that the file is created successfully.
-func createFile(t *testing.T, path string, content string) {
-	err := os.WriteFile(path, []byte(content), 0644)
-	require.NoError(t, err, "Failed to create file %s", path)
-}
-
-// Helper function to create a directory.
-// Ensures that the directory is created successfully.
-func createDir(t *testing.T, path string) {
-	err := os.MkdirAll(path, 0755)
-	require.NoError(t, err, "Failed to create directory %s", path)
-}
-
 // TestGetAllFilePathsExcludeDirTrailingSlash tests that directories are correctly excluded
 // regardless of whether the exclude pattern has a trailing slash or not.
 func TestGetAllFilePathsExcludeDirTrailingSlash(t *testing.T) {
