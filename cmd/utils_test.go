@@ -98,7 +98,9 @@ func (env *testEnv) assertFileContents(outputFile string, expectedContent, unexp
 
 // executeBundleCmd executes the bundle command with given arguments
 func (env *testEnv) executeBundleCmd(args ...string) error {
-	rootCmd.SetArgs(append([]string{"bundle"}, args...))
+	fullArgs := append([]string{"bundle"}, args...)
+	log.Printf("Test executing bundle command with args: %#v", fullArgs)
+	rootCmd.SetArgs(fullArgs)
 	return rootCmd.Execute()
 }
 

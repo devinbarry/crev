@@ -1,17 +1,10 @@
-// Description: This file contains the generate command which generates a textual representation of the project structure.
 package cmd
 
 import (
 	"fmt"
-	"log"
-	"os"
-	"path/filepath"
-	"time"
-
-	"github.com/devinbarry/crev/internal/files"
-	"github.com/devinbarry/crev/internal/formatting"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"os"
 )
 
 // Specific prefixes to ignore
@@ -64,85 +57,30 @@ Example usage:
 `,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Start timer
-		start := time.Now()
-
 		// Get current working directory for output file path
 		cwd, err := os.Getwd()
 		if err != nil {
 			return fmt.Errorf("failed to get working directory: %w", err)
 		}
 
-		rootDir := "."
+		// Create bundle options
+		opts := DefaultBundleOptions()
+
+		// Set root directory
 		if len(args) > 0 {
-			rootDir = args[0]
+			opts.RootDir = args[0]
 		}
 
-		// Check if rootDir exists before proceeding
-		if _, err := os.Stat(rootDir); os.IsNotExist(err) {
-			errMsg := "no files found to bundle"
-			log.Print(errMsg)
-			return fmt.Errorf("%s. Please check your include/exclude patterns and the specified path", errMsg)
-		}
+		// Set output directory
+		opts.OutputDir = cwd
 
-		// Get flags
-		explicitFiles := viper.GetStringSlice("files")
-		includePatterns := viper.GetStringSlice("include")
-		excludePatterns := viper.GetStringSlice("exclude")
+		// Get flags from viper
+		opts.ExplicitFiles = viper.GetStringSlice("files")
+		opts.IncludePatterns = viper.GetStringSlice("include")
+		opts.ExcludePatterns = viper.GetStringSlice("exclude")
 
-		// Add excludes for prefixes
-		for _, prefix := range specificPrefixesToIgnore {
-			// Exclude directories and files starting with the prefix at any level
-			excludePatterns = append(excludePatterns, "**/"+prefix+"*", prefix+"*")
-		}
-
-		// Convert extensions to exclude patterns
-		for _, ext := range specificExtensionsToIgnore {
-			excludePatterns = append(excludePatterns, "**/*"+ext)
-		}
-
-		// Add specific filenames to exclude patterns
-		for _, file := range specificFilesToIgnore {
-			excludePatterns = append(excludePatterns, "**/"+file)
-		}
-
-		// Create output file in current working directory
-		outputFile := filepath.Join(cwd, "crev-project.txt")
-
-		// Fetch file paths
-		filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, explicitFiles)
-		if err != nil {
-			return fmt.Errorf("error getting file paths: %w", err)
-		}
-
-		if len(filePaths) == 0 {
-			errMsg := "no files found to bundle"
-			log.Print(errMsg)
-			return fmt.Errorf("%s. Please check your include/exclude patterns and the specified path", errMsg)
-		}
-
-		// Generate the project tree (structure)
-		projectTree := formatting.GeneratePathTree(filePaths)
-		maxConcurrency := 100
-
-		// Retrieve file contents
-		fileContentMap, err := files.GetContentMapOfFiles(filePaths, maxConcurrency)
-		if err != nil {
-			return fmt.Errorf("error getting file contents: %w", err)
-		}
-
-		// Create and save the project string
-		projectString := formatting.CreateProjectString(projectTree, fileContentMap)
-		if err := files.SaveStringToFile(projectString, outputFile); err != nil {
-			return fmt.Errorf("error saving file: %w", err)
-		}
-
-		// Log success
-		log.Printf("Project overview successfully saved to: %s", outputFile)
-		log.Printf("Estimated token count: %d - %d tokens", len(projectString)/4, len(projectString)/3)
-		log.Printf("Execution time: %s", time.Since(start))
-
-		return nil
+		// Execute the bundle operation
+		return Bundle(opts)
 	},
 }
 
