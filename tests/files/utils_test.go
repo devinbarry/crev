@@ -31,3 +31,29 @@ func createFiles(t *testing.T, rootDir string, files map[string]string) {
 		createFile(t, fullPath, content)
 	}
 }
+
+// assertFileSetMatches verifies that the actual file paths exactly match expectations.
+// Parameters:
+//   - t: the testing context
+//   - actualPaths: the slice of file paths returned by GetAllFilePaths
+//   - expectedPaths: the slice of file paths that should be included
+//   - notExpectedPaths: the slice of file paths that should be excluded
+//   - msgAndArgs: optional message and arguments for test failure output
+func assertFileSetMatches(t *testing.T, actualPaths []string, expectedPaths []string, notExpectedPaths []string, msgAndArgs ...interface{}) {
+	t.Helper()
+
+	// First check that we have exactly the expected number of files
+	require.Len(t, actualPaths, len(expectedPaths),
+		"Wrong number of files returned. Expected exactly %d files, got %d. %v",
+		len(expectedPaths), len(actualPaths), msgAndArgs)
+
+	// Check that all expected paths are present
+	require.ElementsMatch(t, expectedPaths, actualPaths,
+		"File paths don't match expected set. %v", msgAndArgs)
+
+	// Check that none of the excluded paths are present
+	for _, excludedPath := range notExpectedPaths {
+		require.NotContains(t, actualPaths, excludedPath,
+			"Found excluded path %q in results. %v", excludedPath, msgAndArgs)
+	}
+}

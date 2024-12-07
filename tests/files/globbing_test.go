@@ -47,12 +47,16 @@ func TestGetAllFilePathsExcludeFileVsDirectory(t *testing.T) {
 	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
 
-	// Should exclude the file but include the directory and its contents
 	expected := []string{
 		filepath.Join(rootDir, "build_dir"),
 		filepath.Join(rootDir, "build_dir/file.txt"),
 	}
-	require.ElementsMatch(t, expected, filePaths, "Incorrect paths returned")
+	notExpected := []string{
+		filepath.Join(rootDir, "build"),
+	}
+
+	assertFileSetMatches(t, filePaths, expected, notExpected,
+		"Should exclude 'build' file but include 'build_dir' directory and its contents")
 }
 
 // TestGetAllFilePathsExcludeHiddenDirectory tests that hidden directories (like .git)
@@ -61,15 +65,32 @@ func TestGetAllFilePathsExcludeHiddenDirectory(t *testing.T) {
 	rootDir := t.TempDir()
 
 	fileStructure := map[string]string{
-		".git/config": "config content",
+		"tests/format_test.go":   "tests",
+		"tests/globbing_test.go": "tests",
+		".git/config":            "config content",
+		".git/FETCH_HEAD":        "HEAD content",
+		".git/COMMIT":            "COMMIT content",
 	}
 	createFiles(t, rootDir, fileStructure)
 
-	// Exclude ".git/" directory
-	excludePatterns := []string{".git/"}
-	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, nil)
+	includePatterns := []string{"**/*"}
+	excludePatterns := []string{".git/"} // Exclude ".git/" directory
+	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
-	require.Empty(t, filePaths, "Expected no files when excluding hidden directory")
+
+	expected := []string{
+		filepath.Join(rootDir, "tests/"),
+		filepath.Join(rootDir, "tests/format_test.go"),
+		filepath.Join(rootDir, "tests/globbing_test.go"),
+	}
+	notExpected := []string{
+		filepath.Join(rootDir, ".git/"),
+		filepath.Join(rootDir, ".git/config"),
+		filepath.Join(rootDir, ".git/FETCH_HEAD"),
+		filepath.Join(rootDir, ".git/COMMIT"),
+	}
+	assertFileSetMatches(t, filePaths, expected, notExpected,
+		"Should exclude hidden directory but include repo files")
 }
 
 // TestGetAllFilePathsIncludeExcludeOverlap tests the interaction between include and exclude patterns,
