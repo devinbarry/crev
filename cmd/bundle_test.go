@@ -260,8 +260,6 @@ func TestBundleCommandWithExplicitFiles(t *testing.T) {
 	createFile(t, filepath.Join(tempDir, "include.go"), "package main")
 	createFile(t, filepath.Join(tempDir, "exclude.md"), "# Exclude")
 	createFile(t, filepath.Join(tempDir, "build_something.py"), "# Python build script")
-
-	// Create images directory and a file inside
 	createDir(t, filepath.Join(tempDir, "images"))
 	createFile(t, filepath.Join(tempDir, "images", "image.png"), "PNGDATA")
 
@@ -334,7 +332,7 @@ func TestBundleCommandWithExplicitFilesOverridesExclude(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Create a file that would normally be excluded by pattern
-	createFile(t, filepath.Join(tempDir, "image.png"), "PNGDATA")
+	createFile(t, filepath.Join(tempDir, "pycharm.logs.bak"), "logger.info")
 
 	// Create a config that excludes all .png files
 	configContent := `
@@ -342,7 +340,7 @@ include:
   - "**/*"
 
 exclude:
-  - "*.png"
+  - "*.bak"
 `
 	createFile(t, filepath.Join(tempDir, ".crev-config.yaml"), configContent)
 
@@ -367,7 +365,7 @@ exclude:
 	})
 
 	// Explicitly include the PNG file even though it's excluded by the pattern
-	rootCmd.SetArgs([]string{"bundle", ".", "--files", "image.png"})
+	rootCmd.SetArgs([]string{"bundle", ".", "--files", "pycharm.logs.bak"})
 	err = rootCmd.Execute()
 	require.NoError(t, err, "Bundle command execution failed")
 
@@ -379,7 +377,7 @@ exclude:
 	require.NoError(t, err, "Failed to read output file")
 
 	// The explicitly included PNG should appear in the final output
-	assert.Contains(t, string(content), "image.png", "Explicitly included PNG should appear despite exclude patterns.")
+	assert.Contains(t, string(content), "pycharm.logs.bak", "Explicitly included .bak file should appear despite exclude patterns.")
 }
 
 // TestBundleCommandWithNoFiles tests the bundle command when no files are included due to exclude patterns.
