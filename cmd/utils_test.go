@@ -37,6 +37,25 @@ type testEnv struct {
 
 // newTestEnv creates a new test environment with temporary directory and logging setup
 func newTestEnv(t *testing.T) *testEnv {
+	// Reset viper completely
+	viper.Reset()
+
+	// Reset the command's flags
+	generateCmd.ResetFlags()
+
+	// Re-add the original flags
+	generateCmd.Flags().StringSliceP("files", "f", nil,
+		"Specify files to always include (overrides exclude patterns for these files)")
+	generateCmd.Flags().StringSliceP("include", "i", nil,
+		"Include files matching these glob patterns (e.g., 'src/**', '**/*.go')")
+	generateCmd.Flags().StringSliceP("exclude", "e", nil,
+		"Exclude files matching these glob patterns (except those specified by --files)")
+
+	// Re-bind flags to viper
+	viper.BindPFlag("files", generateCmd.Flags().Lookup("files"))
+	viper.BindPFlag("include", generateCmd.Flags().Lookup("include"))
+	viper.BindPFlag("exclude", generateCmd.Flags().Lookup("exclude"))
+
 	// Create temporary directory
 	tempDir := t.TempDir()
 
