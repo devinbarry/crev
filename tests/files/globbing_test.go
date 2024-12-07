@@ -13,11 +13,10 @@ import (
 func TestGetAllFilePathsExcludeDirTrailingSlash(t *testing.T) {
 	rootDir := t.TempDir()
 
-	// Create directories and files
-	dirPath := filepath.Join(rootDir, "dir")
-	createDir(t, dirPath)
-	fileInDir := filepath.Join(dirPath, "file.txt")
-	createFile(t, fileInDir, "content")
+	fileStructure := map[string]string{
+		"dir/file.txt": "content",
+	}
+	createFiles(t, rootDir, fileStructure)
 
 	// Test excluding directory without trailing slash
 	excludePatterns := []string{"dir"}
@@ -37,14 +36,11 @@ func TestGetAllFilePathsExcludeDirTrailingSlash(t *testing.T) {
 func TestGetAllFilePathsExcludeFileVsDirectory(t *testing.T) {
 	rootDir := t.TempDir()
 
-	// Create a file and a directory with similar names
-	filePath := filepath.Join(rootDir, "build")
-	createFile(t, filePath, "file content")
-
-	dirPath := filepath.Join(rootDir, "build_dir")
-	createDir(t, dirPath)
-	fileInDir := filepath.Join(dirPath, "file.txt")
-	createFile(t, fileInDir, "dir file content")
+	fileStructure := map[string]string{
+		"build":              "file content",
+		"build_dir/file.txt": "dir file content",
+	}
+	createFiles(t, rootDir, fileStructure)
 
 	// Exclude "build" which is a file
 	excludePatterns := []string{"build"}
@@ -53,8 +49,8 @@ func TestGetAllFilePathsExcludeFileVsDirectory(t *testing.T) {
 
 	// Should exclude the file but include the directory and its contents
 	expected := []string{
-		dirPath,
-		fileInDir,
+		filepath.Join(rootDir, "build_dir"),
+		filepath.Join(rootDir, "build_dir/file.txt"),
 	}
 	require.ElementsMatch(t, expected, filePaths, "Incorrect paths returned")
 }
@@ -64,11 +60,10 @@ func TestGetAllFilePathsExcludeFileVsDirectory(t *testing.T) {
 func TestGetAllFilePathsExcludeHiddenDirectory(t *testing.T) {
 	rootDir := t.TempDir()
 
-	// Create a hidden directory and a file inside it
-	hiddenDir := filepath.Join(rootDir, ".git")
-	createDir(t, hiddenDir)
-	configFile := filepath.Join(hiddenDir, "config")
-	createFile(t, configFile, "config content")
+	fileStructure := map[string]string{
+		".git/config": "config content",
+	}
+	createFiles(t, rootDir, fileStructure)
 
 	// Exclude ".git/" directory
 	excludePatterns := []string{".git/"}
@@ -82,17 +77,16 @@ func TestGetAllFilePathsExcludeHiddenDirectory(t *testing.T) {
 func TestGetAllFilePathsIncludeExcludeOverlap(t *testing.T) {
 	rootDir := t.TempDir()
 
-	// Create two .go files
-	file1 := filepath.Join(rootDir, "file1.go")
-	createFile(t, file1, "content1")
-
-	file2 := filepath.Join(rootDir, "file2.go")
-	createFile(t, file2, "content2")
+	fileStructure := map[string]string{
+		"file1.go": "content1",
+		"file2.go": "content2",
+	}
+	createFiles(t, rootDir, fileStructure)
 
 	// Include all .go files, but exclude file2.go
 	includePatterns := []string{"**/*.go"}
 	excludePatterns := []string{"file2.go"}
-	expected := []string{file1}
+	expected := []string{filepath.Join(rootDir, "file1.go")}
 
 	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
@@ -103,16 +97,15 @@ func TestGetAllFilePathsIncludeExcludeOverlap(t *testing.T) {
 func TestGetAllFilePathsCaseSensitivity(t *testing.T) {
 	rootDir := t.TempDir()
 
-	// Create files with different cases
-	file1 := filepath.Join(rootDir, "README_upper")
-	createFile(t, file1, "uppercase")
-
-	file2 := filepath.Join(rootDir, "readme_lower")
-	createFile(t, file2, "lowercase")
+	fileStructure := map[string]string{
+		"README_upper": "uppercase",
+		"readme_lower": "lowercase",
+	}
+	createFiles(t, rootDir, fileStructure)
 
 	// Exclude "README_upper"
 	excludePatterns := []string{"README_upper"}
-	expected := []string{file2}
+	expected := []string{filepath.Join(rootDir, "readme_lower")}
 
 	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
@@ -124,13 +117,14 @@ func TestGetAllFilePathsCaseSensitivity(t *testing.T) {
 func TestGetAllFilePathsExcludeNonExistingDirectory(t *testing.T) {
 	rootDir := t.TempDir()
 
-	// Create a test file
-	filePath := filepath.Join(rootDir, "file.txt")
-	createFile(t, filePath, "content")
+	fileStructure := map[string]string{
+		"file.txt": "content",
+	}
+	createFiles(t, rootDir, fileStructure)
 
 	// Exclude a non-existing directory
 	excludePatterns := []string{"nonexistent_dir/"}
-	expected := []string{filePath}
+	expected := []string{filepath.Join(rootDir, "file.txt")}
 
 	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
@@ -142,13 +136,14 @@ func TestGetAllFilePathsExcludeNonExistingDirectory(t *testing.T) {
 func TestGetAllFilePathsExcludeEmptyPattern(t *testing.T) {
 	rootDir := t.TempDir()
 
-	// Create a test file
-	filePath := filepath.Join(rootDir, "file.txt")
-	createFile(t, filePath, "content")
+	fileStructure := map[string]string{
+		"file.txt": "content",
+	}
+	createFiles(t, rootDir, fileStructure)
 
 	// Test with an empty exclude pattern
 	excludePatterns := []string{""}
-	expected := []string{filePath}
+	expected := []string{filepath.Join(rootDir, "file.txt")}
 
 	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
@@ -160,13 +155,13 @@ func TestGetAllFilePathsExcludeEmptyPattern(t *testing.T) {
 func TestGetAllFilePathsExcludeSymlink(t *testing.T) {
 	rootDir := t.TempDir()
 
-	// Create a target directory and file
-	targetDir := filepath.Join(rootDir, "target")
-	createDir(t, targetDir)
-	targetFile := filepath.Join(targetDir, "file.txt")
-	createFile(t, targetFile, "content")
+	fileStructure := map[string]string{
+		"target/file.txt": "content",
+	}
+	createFiles(t, rootDir, fileStructure)
 
 	// Create a symlink to the directory
+	targetDir := filepath.Join(rootDir, "target")
 	symlinkDir := filepath.Join(rootDir, "symlink")
 	err := os.Symlink(targetDir, symlinkDir)
 	require.NoError(t, err, "Failed to create symlink")
@@ -180,7 +175,7 @@ func TestGetAllFilePathsExcludeSymlink(t *testing.T) {
 	// Should only include the target directory and its file
 	expected := []string{
 		targetDir,
-		targetFile,
+		filepath.Join(rootDir, "target/file.txt"),
 	}
 	require.ElementsMatch(t, expected, filePaths, "Incorrect paths returned")
 }

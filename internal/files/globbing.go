@@ -21,7 +21,7 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 	processedExcludePatterns := preprocessExcludePatterns(absRoot, excludePatterns)
 
 	// Handle explicit files: add them to the results and keep track of them
-	filePaths, explicitPaths, err := collectExplicitFiles(absRoot, explicitFiles)
+	filePaths, explicitPaths, err := collectExplicitFiles(explicitFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 
 // collectExplicitFiles adds explicit files (those specified by --files) to the output list,
 // ensuring they exist and tracking them for later checks.
-func collectExplicitFiles(absRoot string, explicitFiles []string) (filePaths []string, explicitPaths map[string]bool, err error) {
+func collectExplicitFiles(explicitFiles []string) (filePaths []string, explicitPaths map[string]bool, err error) {
 	explicitPaths = make(map[string]bool)
 
 	// First, add explicit files and track their paths
