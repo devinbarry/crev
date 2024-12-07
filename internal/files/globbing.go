@@ -32,12 +32,16 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 		return nil, err
 	}
 
-	return collectedPaths, nil
+	// Post-processing step:
+	// Remove any directories that do not contain any included (explicit or pattern-included) files.
+	// This ensures that directories like "docs/api", which only contain excluded files, are not listed.
+	finalPaths := filterEmptyDirectories(collectedPaths)
+
+	return finalPaths, nil
 }
 
 // collectExplicitFiles adds explicit files (those specified by --files) to the output list,
 // ensuring they exist and tracking them for later checks.
-// This function returns the initial file list (with explicit files) and a map of explicit paths.
 func collectExplicitFiles(absRoot string, explicitFiles []string) (filePaths []string, explicitPaths map[string]bool, err error) {
 	explicitPaths = make(map[string]bool)
 
@@ -102,8 +106,7 @@ func walkAndCollectPaths(absRoot string, includePatterns, processedExcludePatter
 		}
 
 		// If this is a directory that's excluded but is a parent of an explicit file,
-		// we do not add it to the filePaths, but we do continue traversal (do not skip).
-		// We only want explicit files, not the directory itself.
+		// we do not add it to filePaths, but we do continue traversal (do not skip).
 		if d.IsDir() && excluded && isParentOfExplicit {
 			// Don't add directory to filePaths, just continue walking
 			return nil
@@ -116,6 +119,8 @@ func walkAndCollectPaths(absRoot string, includePatterns, processedExcludePatter
 		}
 
 		// If we are including this path, add it to the results
+		// Note: We add directories that pass the include test. We will later remove empty directories
+		// that have no included files after we finish traversal.
 		if include {
 			filePaths = append(filePaths, path)
 			seenPaths[path] = true
@@ -227,12 +232,59 @@ func preprocessExcludePatterns(root string, excludePatterns []string) []string {
 	return processedPatterns
 }
 
-// Helper function to check if a slice contains a string
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
+// filterEmptyDirectories removes directories from filePaths that do not contain any included file.
+// This ensures that directories with only excluded files are not listed.
+func filterEmptyDirectories(filePaths []string) []string {
+	// Normalize all filePaths to absolute paths to ensure consistent lookups
+	for i, p := range filePaths {
+		absPath, err := filepath.Abs(p)
+		if err == nil {
+			filePaths[i] = absPath
 		}
 	}
-	return false
+
+	// Build a map of all paths for quick lookup
+	pathSet := make(map[string]bool, len(filePaths))
+	for _, p := range filePaths {
+		pathSet[p] = true
+	}
+
+	// Identify which directories have included files underneath
+	directoryHasIncludedFile := make(map[string]bool)
+	for _, p := range filePaths {
+		info, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+		if !info.IsDir() {
+			// Mark all parent directories as containing an included file
+			dir := filepath.Dir(p)
+			for dir != "." && dir != "/" {
+				directoryHasIncludedFile[dir] = true
+				dir = filepath.Dir(dir)
+			}
+		}
+	}
+
+	// Filter out directories that do not have any included files
+	var finalPaths []string
+	for _, p := range filePaths {
+		info, err := os.Stat(p)
+		if err != nil {
+			// If we can't stat it, just keep it (edge case)
+			finalPaths = append(finalPaths, p)
+			continue
+		}
+		if info.IsDir() {
+			// Only keep this directory if we know it leads to included files
+			if directoryHasIncludedFile[p] {
+				finalPaths = append(finalPaths, p)
+			}
+		} else {
+			// Files are always kept
+			finalPaths = append(finalPaths, p)
+		}
+	}
+
+	return finalPaths
 }

@@ -130,8 +130,6 @@ func TestGetAllFilePathsWithExtensionExcludePatterns(t *testing.T) {
 		filepath.Join(rootDir, "subdir_1", "file2.go"),
 		filepath.Join(rootDir, "subdir_1", "nested_subdir_1"),
 		filepath.Join(rootDir, "subdir_1", "nested_subdir_1", "file3.go"),
-		filepath.Join(rootDir, "subdir_2"),
-		filepath.Join(rootDir, "subdir_2", "nested_subdir_2"),
 	}
 
 	// Exclude .txt and .md files using glob patterns
