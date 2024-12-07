@@ -7,37 +7,6 @@ import (
 	"os"
 )
 
-// Specific prefixes to ignore
-var specificPrefixesToIgnore = []string{
-	// ignore .git, .idea, .vscode, etc.
-	".",
-	"crev", // ignore crev specific files
-}
-
-// Specific extensions to ignore
-var specificExtensionsToIgnore = []string{
-	".jpeg",
-	".jpg",
-	".png",
-	".gif",
-	".pdf",
-	".svg",
-	".ico",
-	".woff",
-	".woff2",
-	".eot",
-	".ttf",
-	".otf",
-}
-
-// Specific filenames to ignore
-var specificFilesToIgnore = []string{
-	"Thumbs.db",
-	"poetry.lock",
-	"go.mod",
-	"go.sum",
-}
-
 var generateCmd = &cobra.Command{
 	Use:   "bundle [path]",
 	Short: "Bundle your project into a single file",
