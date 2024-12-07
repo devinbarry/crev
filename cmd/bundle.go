@@ -9,21 +9,48 @@ import (
 
 var generateCmd = &cobra.Command{
 	Use:   "bundle [path]",
-	Short: "Bundle your project into a single file",
-	Long: `Bundle your project into a single file, starting from the specified directory.
-By default, all files are included unless they match an exclude pattern.
+	Short: "Bundle your project files into a single file",
+	Long: `Bundle your project files into a single file, starting from the specified directory.
 
-Use the --include and --exclude flags to specify patterns for files and directories to include or exclude.
-Patterns are processed in order, and files matching any exclude pattern will be excluded even if they match an include pattern.
-Use the -f or --files flag to specify explicit files to include, overriding exclude patterns if necessary.
+File Selection Rules:
+1. If --files is specified:
+   - Files must exist
+   - Listed files are always included, regardless of exclude patterns
+   - Additional files can be added via include patterns
+   - Exclude patterns still apply to files matched by include patterns
+
+2. If --include patterns are specified (via flags or config):
+   - Files matching any include pattern are included
+   - Files matching any exclude pattern are excluded (unless specified via --files)
+   - Exclude patterns take precedence over include patterns for matched files
+
+3. If neither --files nor --include patterns are specified:
+   - Default include pattern "**/*" is used
+   - Files matching any exclude pattern are excluded
+
+Config File Integration:
+- Values in .crev-config.yaml are used as defaults
+- Command line flags override config file values
+- Config file include/exclude patterns are merged with command line patterns
 
 Example usage:
+  # Use default include pattern (**/*) with default excludes
   crev bundle
-  crev bundle /path/to/project
-  crev bundle --exclude='*.md' --exclude='test/*'
+
+  # Bundle specific files (guaranteed inclusion) plus any files matching includes
+  crev bundle --files file1.go --files file2.py --include='src/**'
+
+  # Force include a file that would normally be excluded
+  crev bundle --files src/vendor/important.go --include='src/**' --exclude='src/vendor/**'
+
+  # Use custom include patterns with default excludes
+  crev bundle --include='src/**' --include='lib/**'
+
+  # Combine include and exclude patterns
   crev bundle --include='src/**' --exclude='src/vendor/**'
-  crev bundle -f file1.go,file2.py,file3.md
-`,
+
+  # Bundle from a different directory
+  crev bundle /path/to/project`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Get current working directory for output file path
@@ -43,10 +70,23 @@ Example usage:
 		// Set output directory
 		opts.OutputDir = cwd
 
-		// Get flags from viper
-		opts.ExplicitFiles = viper.GetStringSlice("files")
-		opts.IncludePatterns = viper.GetStringSlice("include")
+		// Get flags and apply defaults
+		explicitFiles := viper.GetStringSlice("files")
+		includePatterns := viper.GetStringSlice("include")
 		opts.ExcludePatterns = viper.GetStringSlice("exclude")
+
+		// TODO If files are explicitly specified, check that they exist
+		if len(explicitFiles) > 0 {
+			opts.ExplicitFiles = explicitFiles
+		} else {
+			// If no files specified, check include patterns
+			if len(includePatterns) > 0 {
+				opts.IncludePatterns = includePatterns
+			} else {
+				// If no includes specified, use default include pattern
+				opts.IncludePatterns = []string{"**/*"}
+			}
+		}
 
 		// Execute the bundle operation
 		return Bundle(opts)
@@ -56,16 +96,17 @@ Example usage:
 func init() {
 	rootCmd.AddCommand(generateCmd)
 
-	// Add the -f flag (short for --files) to specify explicit files to include in the bundle
-	generateCmd.Flags().StringSliceP("files", "f", []string{}, "Specify multiple file paths to include (e.g., --files file1.go --files file2.py)")
+	// Add flags without defaults - we'll handle defaults in the RunE function
+	generateCmd.Flags().StringSliceP("files", "f", nil,
+		"Specify files to always include (overrides exclude patterns for these files)")
 
-	// Add the --include flag to include files or directories matching patterns
-	generateCmd.Flags().StringSliceP("include", "I", []string{}, "Include files or directories matching these glob patterns (e.g., 'src/**', '**/*.go')")
+	generateCmd.Flags().StringSliceP("include", "i", nil,
+		"Include files matching these glob patterns (e.g., 'src/**', '**/*.go')")
 
-	// Add the --exclude flag to exclude files or directories matching patterns
-	generateCmd.Flags().StringSliceP("exclude", "E", []string{}, "Exclude files or directories matching these glob patterns (e.g., 'vendor/**', '**/*.test.go')")
+	generateCmd.Flags().StringSliceP("exclude", "e", nil,
+		"Exclude files matching these glob patterns (except those specified by --files)")
 
-	// Bind flags to viper for easy retrieval
+	// Bind flags to viper
 	viper.BindPFlag("files", generateCmd.Flags().Lookup("files"))
 	viper.BindPFlag("include", generateCmd.Flags().Lookup("include"))
 	viper.BindPFlag("exclude", generateCmd.Flags().Lookup("exclude"))
