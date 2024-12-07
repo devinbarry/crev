@@ -193,10 +193,7 @@ exclude:
 
 	// Execute bundle command
 	err := env.executeBundleCmd(".")
-	require.Error(t, err, "Expected bundle command to fail when no files are found")
-
-	// Verify error message
-	env.assertLogContains("no files found to bundle.", "Should log no files found error")
+	env.assertErrorContains(err, "no files found to bundle")
 }
 
 // TestBundleCommandWithIncludeAndExcludePatterns tests combining include and exclude patterns.
@@ -268,8 +265,5 @@ func TestBundleCommandHandlesNonExistentPath(t *testing.T) {
 
 	// Execute bundle command with non-existent path
 	err := env.executeBundleCmd(nonExistentDir)
-	require.Error(t, err, "Expected bundle command to fail for non-existent path")
-
-	// Verify error message
-	env.assertLogContains("no files found to bundle", "Should log no files found error")
+	env.assertErrorContains(err, "does not exist")
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -10,6 +11,21 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
+
+// multiWriter writes to multiple io.Writers
+type multiWriter struct {
+	writers []io.Writer
+}
+
+func (t *multiWriter) Write(p []byte) (n int, err error) {
+	for _, w := range t.writers {
+		n, err = w.Write(p)
+		if err != nil {
+			return
+		}
+	}
+	return len(p), nil
+}
 
 // testEnv represents a test environment with temporary directory and logging
 type testEnv struct {
@@ -30,7 +46,14 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	// Setup log buffer
 	logBuf := &bytes.Buffer{}
-	log.SetOutput(logBuf)
+
+	// Create a multi-writer that writes to both buffer and stderr if verbose testing is enabled
+	writers := []io.Writer{logBuf}
+	if testing.Verbose() {
+		writers = append(writers, os.Stderr)
+	}
+	mw := &multiWriter{writers: writers}
+	log.SetOutput(mw)
 
 	// Change to temp directory
 	err = os.Chdir(tempDir)
@@ -110,6 +133,20 @@ func (env *testEnv) assertLogContains(expectedMessages ...string) {
 	for _, msg := range expectedMessages {
 		require.Contains(env.t, logOutput, msg, "Log should contain: %s", msg)
 	}
+}
+
+// assertErrorContains checks if the error contains expected message
+func (env *testEnv) assertErrorContains(err error, expectedMsg string) {
+	require.Error(env.t, err, "Expected an error")
+	require.Contains(env.t, err.Error(), expectedMsg,
+		"Error should contain message: %s", expectedMsg)
+}
+
+// assertNoErrorWithLog checks there's no error and log contains message
+func (env *testEnv) assertNoErrorWithLog(err error, expectedLog string) {
+	require.NoError(env.t, err, "Expected no error")
+	require.Contains(env.t, env.LogBuffer.String(), expectedLog,
+		"Log should contain: %s", expectedLog)
 }
 
 // Common config templates
