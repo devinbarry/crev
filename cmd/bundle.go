@@ -75,9 +75,10 @@ Example usage:
 		includePatterns := viper.GetStringSlice("include")
 		opts.ExcludePatterns = viper.GetStringSlice("exclude")
 
-		// TODO If files are explicitly specified, check that they exist
+		// If files are explicitly specified, we don't modify include patterns
 		if len(explicitFiles) > 0 {
 			opts.ExplicitFiles = explicitFiles
+			opts.IncludePatterns = includePatterns
 		} else {
 			// If no files specified, check include patterns
 			if len(includePatterns) > 0 {

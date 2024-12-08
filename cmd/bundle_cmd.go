@@ -28,6 +28,21 @@ func DefaultBundleOptions() BundleOptions {
 	}
 }
 
+// validateExplicitFiles checks if all explicitly specified files exist
+func validateExplicitFiles(files []string) error {
+	var missingFiles []string
+	for _, file := range files {
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			missingFiles = append(missingFiles, file)
+		}
+	}
+
+	if len(missingFiles) > 0 {
+		return fmt.Errorf("the following files specified via --files do not exist: %v", missingFiles)
+	}
+	return nil
+}
+
 // Bundle performs the main bundling operation
 func Bundle(opts BundleOptions) error {
 	start := time.Now()
@@ -50,8 +65,17 @@ func Bundle(opts BundleOptions) error {
 		return fmt.Errorf("error accessing directory %q: %w", absRootDir, err)
 	}
 
+	// Validate explicit files if any are specified
+	if len(opts.ExplicitFiles) > 0 {
+		if err := validateExplicitFiles(opts.ExplicitFiles); err != nil {
+			return err
+		}
+	}
+
 	// Add default exclude patterns
 	opts.ExcludePatterns = appendDefaultExcludes(opts.ExcludePatterns)
+	log.Printf("Includes: %v", opts.IncludePatterns)
+	log.Printf("Excludes: %v", opts.ExcludePatterns)
 
 	// Create output file path
 	outputFile := filepath.Join(opts.OutputDir, "crev-project.txt")
@@ -61,6 +85,8 @@ func Bundle(opts BundleOptions) error {
 	if err != nil {
 		return fmt.Errorf("error getting file paths: %w", err)
 	}
+
+	log.Println(filePaths)
 
 	if len(filePaths) == 0 {
 		return fmt.Errorf("no files found to bundle. Please check your include/exclude patterns and the specified path")

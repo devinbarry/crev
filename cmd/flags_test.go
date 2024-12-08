@@ -133,21 +133,23 @@ func TestIncludeAndExclude(t *testing.T) {
 func TestFilesOverrideExcludes(t *testing.T) {
 	env := newTestEnv(t)
 	files := map[string]string{
+		"src/bundle.go":       "package main",
+		"src/bundle_test.go":  "package main",
 		"src/main.go":         "package main",
 		"test/main_test.go":   "package test",
 		"test/helper_test.go": "package test",
 	}
 	env.createProjectStructure(files)
 
-	err := env.executeBundleCmd(".",
-		"--files", "test/main_test.go",
-		"--exclude", "**/*_test.go")
+	err := env.executeBundleCmd(".", "--files", "test/main_test.go", "--exclude", "**/*_test.go")
 	require.NoError(t, err)
 
 	expectedFiles := []string{"test/main_test.go"}
 	unexpectedFiles := []string{
-		"test/helper_test.go",
+		"src/bundle.go",
+		"src/bundle_test.go",
 		"src/main.go",
+		"test/helper_test.go",
 	}
 	env.assertFileContents("crev-project.txt", expectedFiles, unexpectedFiles)
 }

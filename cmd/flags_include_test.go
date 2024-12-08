@@ -74,9 +74,8 @@ func TestNonExistentFileFlag(t *testing.T) {
 	env.createProjectStructure(files)
 
 	err := env.executeBundleCmd(".", "--files", "nonexistent.go")
-	// TODO We don't check if files exist yet
-	require.Error(t, err, "Should fail when specified file doesn't exist")
-	env.assertLogContains("no files found to bundle")
+	// We raise an error when files don't exist
+	env.assertErrorContains(err, "the following files specified via --files do not exist: [nonexistent.go]")
 }
 
 // TestIncludeSingleDirectory tests including files from a single directory
