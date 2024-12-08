@@ -74,6 +74,7 @@ func Bundle(opts BundleOptions) error {
 
 	// Add default exclude patterns
 	opts.ExcludePatterns = appendDefaultExcludes(opts.ExcludePatterns)
+	log.Printf("Files: %v", opts.ExplicitFiles)
 	log.Printf("Includes: %v", opts.IncludePatterns)
 	log.Printf("Excludes: %v", opts.ExcludePatterns)
 

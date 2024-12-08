@@ -31,8 +31,7 @@ func TestGetAllFilePathsExcludeDirTrailingSlash(t *testing.T) {
 	require.Empty(t, filePaths, "Expected no files when excluding directory with slash")
 }
 
-// TestGetAllFilePathsExcludeFileVsDirectory tests that file exclusion patterns work correctly
-// when there are similarly named files and directories.
+// TestGetAllFilePathsExcludeFileVsDirectory tests excluding a file vs a directory with the same name.
 func TestGetAllFilePathsExcludeFileVsDirectory(t *testing.T) {
 	rootDir := t.TempDir()
 
@@ -43,8 +42,9 @@ func TestGetAllFilePathsExcludeFileVsDirectory(t *testing.T) {
 	createFiles(t, rootDir, fileStructure)
 
 	// Exclude "build" which is a file
+	includePatterns := []string{"**/*"}
 	excludePatterns := []string{"build"}
-	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, nil)
+	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
 
 	expected := []string{
@@ -101,17 +101,24 @@ func TestGetAllFilePathsIncludeExcludeOverlap(t *testing.T) {
 	fileStructure := map[string]string{
 		"file1.go": "content1",
 		"file2.go": "content2",
+		"file3.go": "content3",
 	}
 	createFiles(t, rootDir, fileStructure)
 
 	// Include all .go files, but exclude file2.go
 	includePatterns := []string{"**/*.go"}
 	excludePatterns := []string{"file2.go"}
-	expected := []string{filepath.Join(rootDir, "file1.go")}
-
 	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
-	require.ElementsMatch(t, expected, filePaths, "Incorrect paths returned")
+
+	// file1 and file3 but not file2
+	expected := []string{
+		filepath.Join(rootDir, "file1.go"),
+		filepath.Join(rootDir, "file3.go"),
+	}
+	notExpected := []string{filepath.Join(rootDir, "file2.go")}
+	assertFileSetMatches(t, filePaths, expected, notExpected,
+		"Only file1.go should be included after exclusion")
 }
 
 // TestGetAllFilePathsCaseSensitivity tests that file pattern matching is case-sensitive.
@@ -119,41 +126,48 @@ func TestGetAllFilePathsCaseSensitivity(t *testing.T) {
 	rootDir := t.TempDir()
 
 	fileStructure := map[string]string{
-		"README_upper": "uppercase",
-		"readme_lower": "lowercase",
+		"README": "uppercase",
+		"readme": "lowercase",
 	}
 	createFiles(t, rootDir, fileStructure)
 
-	// Exclude "README_upper"
-	excludePatterns := []string{"README_upper"}
-	expected := []string{filepath.Join(rootDir, "readme_lower")}
-
-	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, nil)
+	// Exclude "README uppercase only"
+	includePatterns := []string{"**/*"}
+	excludePatterns := []string{"README"}
+	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
-	require.ElementsMatch(t, expected, filePaths, "Incorrect paths returned")
+
+	expected := []string{filepath.Join(rootDir, "readme")}
+	notExpected := []string{filepath.Join(rootDir, "README")}
+	assertFileSetMatches(t, filePaths, expected, notExpected,
+		"Only readme should be included after excluding README")
 }
 
-// TestGetAllFilePathsExcludeNonExistingDirectory tests that excluding non-existent directories
-// does not affect the inclusion of existing files.
+// TestGetAllFilePathsExcludeNonExistingDirectory tests that excluding a non-existing directory doesn't affect existing files.
 func TestGetAllFilePathsExcludeNonExistingDirectory(t *testing.T) {
 	rootDir := t.TempDir()
 
 	fileStructure := map[string]string{
 		"file.txt": "content",
+		"money.py": "# time to get rich",
 	}
 	createFiles(t, rootDir, fileStructure)
 
 	// Exclude a non-existing directory
+	includePatterns := []string{"**/*"}
 	excludePatterns := []string{"nonexistent_dir/"}
-	expected := []string{filepath.Join(rootDir, "file.txt")}
-
-	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, nil)
+	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
-	require.ElementsMatch(t, expected, filePaths, "Incorrect paths returned")
+
+	expected := []string{
+		filepath.Join(rootDir, "file.txt"),
+		filepath.Join(rootDir, "money.py"),
+	}
+	assertFileSetMatches(t, filePaths, expected, nil,
+		"Existing files should remain unaffected by excluding non-existent directories")
 }
 
-// TestGetAllFilePathsExcludeEmptyPattern tests that empty exclude patterns are properly handled
-// and do not affect file inclusion.
+// TestGetAllFilePathsExcludeEmptyPattern tests that empty exclude patterns are ignored.
 func TestGetAllFilePathsExcludeEmptyPattern(t *testing.T) {
 	rootDir := t.TempDir()
 
@@ -162,13 +176,15 @@ func TestGetAllFilePathsExcludeEmptyPattern(t *testing.T) {
 	}
 	createFiles(t, rootDir, fileStructure)
 
-	// Test with an empty exclude pattern
+	// Exclude patterns list contains an empty string
+	includePatterns := []string{"**/*"}
 	excludePatterns := []string{""}
-	expected := []string{filepath.Join(rootDir, "file.txt")}
-
-	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, nil)
+	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
-	require.ElementsMatch(t, expected, filePaths, "Incorrect paths returned")
+
+	expected := []string{filepath.Join(rootDir, "file.txt")}
+	assertFileSetMatches(t, filePaths, expected, nil,
+		"Empty exclude patterns should be ignored")
 }
 
 // TestGetAllFilePathsExcludeSymlink tests that symbolic links can be properly excluded
@@ -188,9 +204,10 @@ func TestGetAllFilePathsExcludeSymlink(t *testing.T) {
 	require.NoError(t, err, "Failed to create symlink")
 
 	// Exclude the symlink
+	includePatterns := []string{"**/*"}
 	excludePatterns := []string{"symlink/"}
 
-	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, nil)
+	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
 
 	// Should only include the target directory and its file
@@ -198,5 +215,10 @@ func TestGetAllFilePathsExcludeSymlink(t *testing.T) {
 		targetDir,
 		filepath.Join(rootDir, "target/file.txt"),
 	}
-	require.ElementsMatch(t, expected, filePaths, "Incorrect paths returned")
+	// The symlink and its contents should be excluded
+	notExpected := []string{
+		symlinkDir,
+		filepath.Join(rootDir, "symlink/file.txt")}
+	assertFileSetMatches(t, filePaths, expected, notExpected,
+		"Symlinked directories should be excluded correctly")
 }

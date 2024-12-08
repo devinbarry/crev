@@ -180,23 +180,29 @@ func isExcludedPath(absRoot, relPath string, processedExcludePatterns []string, 
 }
 
 // shouldIncludePath checks whether a path should be included based on the provided includePatterns.
-// If no includePatterns are provided, everything is included by default.
+// Previously, if no includePatterns were specified, we included all files by default.
+// According to the updated logic, if no include patterns are specified, we do not include any files.
+// Explicit files are handled separately by the calling logic (they bypass this check).
 func shouldIncludePath(relPath string, includePatterns []string) (bool, error) {
-	// Include everything if no patterns specified
-	include := len(includePatterns) == 0
-	if len(includePatterns) > 0 {
-		for _, pattern := range includePatterns {
-			matched, err := doublestar.PathMatch(pattern, relPath)
-			if err != nil {
-				return false, err
-			}
-			if matched {
-				include = true
-				break
-			}
+	// If no includePatterns are specified, do not include this path by default.
+	// The caller may still include this file explicitly, but that logic is handled elsewhere.
+	if len(includePatterns) == 0 {
+		return false, nil
+	}
+
+	// If include patterns are specified, we need to check if this path matches any of them.
+	for _, pattern := range includePatterns {
+		matched, err := doublestar.PathMatch(pattern, relPath)
+		if err != nil {
+			return false, err
+		}
+		if matched {
+			return true, nil
 		}
 	}
-	return include, nil
+
+	// If no pattern matched, do not include this file.
+	return false, nil
 }
 
 // preprocessExcludePatterns adjusts exclude patterns to handle directories and trailing slashes.
