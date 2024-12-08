@@ -32,6 +32,7 @@ func TestExplicitFilesPriority_ExplicitFromExcludedDirectory(t *testing.T) {
 	createFiles(t, rootDir, fileStructure)
 
 	// Exclude all files in the build directory
+	includePatterns := []string{"**/*"}
 	excludePatterns := []string{"build/**"}
 
 	// Explicitly include specific files from the excluded build directory
@@ -67,7 +68,7 @@ func TestExplicitFilesPriority_ExplicitFromExcludedDirectory(t *testing.T) {
 
 	// Get all file paths using the function under test
 	// nil is passed as includePatterns, meaning all files are included by default
-	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, explicitFiles)
+	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, explicitFiles)
 	require.NoError(t, err, "GetAllFilePaths failed")
 
 	// require.ElementsMatch checks that two slices contain the same elements, regardless of order
@@ -118,15 +119,7 @@ func TestExplicitFilesPriority_MultipleExcludePatterns(t *testing.T) {
 	// 2. Explicitly included files
 	// 3. Necessary directory structure
 	expectedFiles := []string{
-		filepath.Join(rootDir, "build"),
-		filepath.Join(rootDir, "build/output1.go"),
-		filepath.Join(rootDir, "docs"),
 		filepath.Join(rootDir, "docs/readme.md"),
-		filepath.Join(rootDir, "src"),
-		filepath.Join(rootDir, "src/file1.go"),
-		filepath.Join(rootDir, "src/file2.go"),
-		filepath.Join(rootDir, "src/nested"),
-		filepath.Join(rootDir, "src/nested/file3.go"),
 		filepath.Join(rootDir, "src/nested/file4.txt"),
 		filepath.Join(rootDir, "vendor/lib1/module.go"),
 	}
@@ -160,6 +153,7 @@ func TestExplicitFilesPriority_ExtensionAndDirectoryExcludes(t *testing.T) {
 	createFiles(t, rootDir, fileStructure)
 
 	// Test combination of extension and directory exclusions
+	includePatterns := []string{"**/*"}
 	excludePatterns := []string{
 		"**/*.go", // Exclude all .go files
 		"docs/**", // Exclude all files in docs directory
@@ -188,7 +182,7 @@ func TestExplicitFilesPriority_ExtensionAndDirectoryExcludes(t *testing.T) {
 		filepath.Join(rootDir, "vendor/lib2/package.json"),
 	}
 
-	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, explicitFiles)
+	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, explicitFiles)
 	require.NoError(t, err, "GetAllFilePaths failed")
 	require.ElementsMatch(t, expectedFiles, filePaths, "Incorrect paths returned")
 
@@ -217,6 +211,7 @@ func TestExplicitFilesPriority_NonExistentExplicitFiles(t *testing.T) {
 	createFiles(t, rootDir, fileStructure)
 
 	// Exclude all files in src directory
+	includePatterns := []string{"**/*"}
 	excludePatterns := []string{"src/**"}
 
 	// Include one valid file and one non-existent file
@@ -245,7 +240,7 @@ func TestExplicitFilesPriority_NonExistentExplicitFiles(t *testing.T) {
 		filepath.Join(rootDir, "vendor/lib2/package.json"),
 	}
 
-	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, explicitFiles)
+	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, explicitFiles)
 	require.NoError(t, err, "GetAllFilePaths failed")
 	require.ElementsMatch(t, expectedFiles, filePaths, "Incorrect paths returned")
 

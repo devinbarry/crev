@@ -23,8 +23,14 @@ func TestSingleFileFlag(t *testing.T) {
 	err := env.executeBundleCmd(".", "--files", "main.go")
 	require.NoError(t, err)
 
-	expectedFiles := []string{"main.go", "helper.go", "util/utils.go"}
-	env.assertFileContents("crev-project.txt", expectedFiles, nil)
+	expectedFiles := []string{"main.go"}
+	unexpectedFiles := []string{
+		"helper.go",
+		"util/utils.go",
+		"docs/readme.md",
+		"test/test.go",
+	}
+	env.assertFileContents("crev-project.txt", expectedFiles, unexpectedFiles)
 }
 
 // TestMultipleFilesFlag tests bundling multiple specified files
@@ -42,8 +48,13 @@ func TestMultipleFilesFlag(t *testing.T) {
 	err := env.executeBundleCmd(".", "--files", "main.go", "--files", "helper.go")
 	require.NoError(t, err)
 
-	expectedFiles := []string{"main.go", "helper.go", "util/utils.go"}
-	env.assertFileContents("crev-project.txt", expectedFiles, nil)
+	expectedFiles := []string{"main.go", "helper.go"}
+	unexpectedFiles := []string{
+		"util/utils.go",
+		"docs/readme.md",
+		"test/test.go",
+	}
+	env.assertFileContents("crev-project.txt", expectedFiles, unexpectedFiles)
 }
 
 // TestFileInSubdirectoryFlag tests bundling a file from a subdirectory
@@ -61,8 +72,14 @@ func TestFileInSubdirectoryFlag(t *testing.T) {
 	err := env.executeBundleCmd(".", "--files", "util/utils.go")
 	require.NoError(t, err)
 
-	expectedFiles := []string{"util/utils.go", "main.go", "helper.go"}
-	env.assertFileContents("crev-project.txt", expectedFiles, nil)
+	expectedFiles := []string{"util/utils.go"}
+	unexpectedFiles := []string{
+		"main.go",
+		"helper.go",
+		"docs/readme.md",
+		"test/test.go",
+	}
+	env.assertFileContents("crev-project.txt", expectedFiles, unexpectedFiles)
 }
 
 // TestNonExistentFileFlag tests behavior with non-existent file
