@@ -33,11 +33,20 @@ func GetAllFilePaths(root string, includePatterns, excludePatterns, explicitFile
 	}
 
 	// Post-processing step:
-	// Remove any directories that do not contain any included (explicit or pattern-included) files.
-	// This ensures that directories like "docs/api", which only contain excluded files, are not listed.
+	// Remove any directories that do not contain any included (explicit or pattern-included) files
 	finalPaths := filterEmptyDirectories(collectedPaths)
 
-	return finalPaths, nil
+	// Convert all paths to relative before returning
+	relativePaths := make([]string, 0, len(finalPaths))
+	for _, path := range finalPaths {
+		relPath, err := filepath.Rel(absRoot, path)
+		if err != nil {
+			return nil, err
+		}
+		relativePaths = append(relativePaths, filepath.ToSlash(relPath))
+	}
+
+	return relativePaths, nil
 }
 
 // collectExplicitFiles adds explicit files (those specified by --files) to the output list,

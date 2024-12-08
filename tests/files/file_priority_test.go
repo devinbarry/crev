@@ -47,23 +47,23 @@ func TestExplicitFilesPriority_ExplicitFromExcludedDirectory(t *testing.T) {
 	// 2. All directories (they're needed for traversal)
 	// 3. All files not in excluded directories
 	expectedFiles := []string{
-		filepath.Join(rootDir, "build/output1.go"),
-		filepath.Join(rootDir, "build/output2.txt"),
-		filepath.Join(rootDir, "docs"),
-		filepath.Join(rootDir, "docs/api"),
-		filepath.Join(rootDir, "docs/api/overview.md"),
-		filepath.Join(rootDir, "docs/readme.md"),
-		filepath.Join(rootDir, "src"),
-		filepath.Join(rootDir, "src/file1.go"),
-		filepath.Join(rootDir, "src/file2.go"),
-		filepath.Join(rootDir, "src/nested"),
-		filepath.Join(rootDir, "src/nested/file3.go"),
-		filepath.Join(rootDir, "src/nested/file4.txt"),
-		filepath.Join(rootDir, "vendor"),
-		filepath.Join(rootDir, "vendor/lib1"),
-		filepath.Join(rootDir, "vendor/lib1/module.go"),
-		filepath.Join(rootDir, "vendor/lib2"),
-		filepath.Join(rootDir, "vendor/lib2/package.json"),
+		"build/output1.go",
+		"build/output2.txt",
+		"docs",
+		"docs/api",
+		"docs/api/overview.md",
+		"docs/readme.md",
+		"src",
+		"src/file1.go",
+		"src/file2.go",
+		"src/nested",
+		"src/nested/file3.go",
+		"src/nested/file4.txt",
+		"vendor",
+		"vendor/lib1",
+		"vendor/lib1/module.go",
+		"vendor/lib2",
+		"vendor/lib2/package.json",
 	}
 
 	// Get all file paths using the function under test
@@ -75,7 +75,7 @@ func TestExplicitFilesPriority_ExplicitFromExcludedDirectory(t *testing.T) {
 	require.ElementsMatch(t, expectedFiles, filePaths, "Incorrect paths returned")
 
 	// Verify that non-existent files are not included in the results
-	require.NotContains(t, filePaths, filepath.Join(rootDir, "non-existent-file.txt"))
+	require.NotContains(t, filePaths, "non-existent-file.txt")
 }
 
 // TestExplicitFilesPriority_MultipleExcludePatterns tests that multiple exclude patterns
@@ -119,9 +119,9 @@ func TestExplicitFilesPriority_MultipleExcludePatterns(t *testing.T) {
 	// 2. Explicitly included files
 	// 3. Necessary directory structure
 	expectedFiles := []string{
-		filepath.Join(rootDir, "docs/readme.md"),
-		filepath.Join(rootDir, "src/nested/file4.txt"),
-		filepath.Join(rootDir, "vendor/lib1/module.go"),
+		"docs/readme.md",
+		"src/nested/file4.txt",
+		"vendor/lib1/module.go",
 	}
 
 	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, explicitFiles)
@@ -129,8 +129,8 @@ func TestExplicitFilesPriority_MultipleExcludePatterns(t *testing.T) {
 	require.ElementsMatch(t, expectedFiles, filePaths, "Incorrect paths returned")
 
 	// Verify that excluded files that weren't explicitly included remain excluded
-	require.NotContains(t, filePaths, filepath.Join(rootDir, "docs/api/overview.md"))
-	require.NotContains(t, filePaths, filepath.Join(rootDir, "vendor/lib2/package.json"))
+	require.NotContains(t, filePaths, "docs/api/overview.md")
+	require.NotContains(t, filePaths, "vendor/lib2/package.json")
 }
 
 // TestExplicitFilesPriority_ExtensionAndDirectoryExcludes tests the interaction between
@@ -170,16 +170,16 @@ func TestExplicitFilesPriority_ExtensionAndDirectoryExcludes(t *testing.T) {
 	// 2. Explicitly included files
 	// 3. Necessary directory structure
 	expectedFiles := []string{
-		filepath.Join(rootDir, "build"),
-		filepath.Join(rootDir, "build/output2.txt"),
-		filepath.Join(rootDir, "docs/api/overview.md"),
-		filepath.Join(rootDir, "src"),
-		filepath.Join(rootDir, "src/file1.go"),
-		filepath.Join(rootDir, "src/nested"),
-		filepath.Join(rootDir, "src/nested/file4.txt"),
-		filepath.Join(rootDir, "vendor"),
-		filepath.Join(rootDir, "vendor/lib2"),
-		filepath.Join(rootDir, "vendor/lib2/package.json"),
+		"build",
+		"build/output2.txt",
+		"docs/api/overview.md",
+		"src",
+		"src/file1.go",
+		"src/nested",
+		"src/nested/file4.txt",
+		"vendor",
+		"vendor/lib2",
+		"vendor/lib2/package.json",
 	}
 
 	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, explicitFiles)
@@ -187,8 +187,8 @@ func TestExplicitFilesPriority_ExtensionAndDirectoryExcludes(t *testing.T) {
 	require.ElementsMatch(t, expectedFiles, filePaths, "Incorrect paths returned")
 
 	// Verify that excluded files that weren't explicitly included remain excluded
-	require.NotContains(t, filePaths, filepath.Join(rootDir, "src/file2.go"))
-	require.NotContains(t, filePaths, filepath.Join(rootDir, "docs/readme.md"))
+	require.NotContains(t, filePaths, "src/file2.go")
+	require.NotContains(t, filePaths, "docs/readme.md")
 }
 
 // TestExplicitFilesPriority_NonExistentExplicitFiles tests that the system handles
@@ -225,19 +225,19 @@ func TestExplicitFilesPriority_NonExistentExplicitFiles(t *testing.T) {
 	// 2. Valid explicitly included files (but not non-existent ones)
 	// 3. Necessary directory structure
 	expectedFiles := []string{
-		filepath.Join(rootDir, "build"),
-		filepath.Join(rootDir, "build/output1.go"),
-		filepath.Join(rootDir, "build/output2.txt"),
-		filepath.Join(rootDir, "docs"),
-		filepath.Join(rootDir, "docs/api"),
-		filepath.Join(rootDir, "docs/api/overview.md"),
-		filepath.Join(rootDir, "docs/readme.md"),
-		filepath.Join(rootDir, "src/file1.go"),
-		filepath.Join(rootDir, "vendor"),
-		filepath.Join(rootDir, "vendor/lib1"),
-		filepath.Join(rootDir, "vendor/lib1/module.go"),
-		filepath.Join(rootDir, "vendor/lib2"),
-		filepath.Join(rootDir, "vendor/lib2/package.json"),
+		"build",
+		"build/output1.go",
+		"build/output2.txt",
+		"docs",
+		"docs/api",
+		"docs/api/overview.md",
+		"docs/readme.md",
+		"src/file1.go",
+		"vendor",
+		"vendor/lib1",
+		"vendor/lib1/module.go",
+		"vendor/lib2",
+		"vendor/lib2/package.json",
 	}
 
 	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, explicitFiles)
@@ -245,6 +245,6 @@ func TestExplicitFilesPriority_NonExistentExplicitFiles(t *testing.T) {
 	require.ElementsMatch(t, expectedFiles, filePaths, "Incorrect paths returned")
 
 	// Verify that excluded files and non-existent files are not included
-	require.NotContains(t, filePaths, filepath.Join(rootDir, "src/file2.go"))
-	require.NotContains(t, filePaths, filepath.Join(rootDir, "non-existent.txt"))
+	require.NotContains(t, filePaths, "src/file2.go")
+	require.NotContains(t, filePaths, "non-existent.txt")
 }

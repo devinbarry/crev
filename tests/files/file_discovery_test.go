@@ -23,9 +23,9 @@ func TestGetAllFilePaths(t *testing.T) {
 	require.NoError(t, err, "GetAllFilePaths failed")
 
 	expected := []string{
-		filepath.Join(rootDir, "subdir"),
-		filepath.Join(rootDir, "subdir/file1.txt"),
-		filepath.Join(rootDir, "subdir/file2.txt"),
+		"subdir",
+		"subdir/file1.txt",
+		"subdir/file2.txt",
 	}
 	require.ElementsMatch(t, expected, filePaths, "Incorrect paths returned")
 }
@@ -66,13 +66,13 @@ func TestGetAllFilePathsWithExcludePattern(t *testing.T) {
 	require.NoError(t, err, "GetAllFilePaths failed")
 
 	expected := []string{
-		filepath.Join(rootDir, "file1.go"),
-		filepath.Join(rootDir, "subdir_2"),
-		filepath.Join(rootDir, "subdir_2", "file3.go"),
+		"file1.go",
+		"subdir_2",
+		"subdir_2/file3.go",
 	}
 	notExpected := []string{
-		filepath.Join(rootDir, "subdir_1/file2.go"),
-		filepath.Join(rootDir, "subdir_1/file4.go"),
+		"subdir_1/file2.go",
+		"subdir_1/file4.go",
 	}
 	assertFileSetMatches(t, filePaths, expected, notExpected,
 		"Incorrect paths returned")
@@ -93,9 +93,9 @@ func TestGetAllFilePathsWithIncludePattern(t *testing.T) {
 	createFiles(t, rootDir, fileStructure)
 
 	expected := []string{
-		filepath.Join(rootDir, "file1.go"),
-		filepath.Join(rootDir, "subdir_1", "file3.go"),
-		filepath.Join(rootDir, "subdir_2", "file5.go"),
+		"file1.go",
+		"subdir_1/file3.go",
+		"subdir_2/file5.go",
 	}
 
 	// Include only .go files using glob pattern
@@ -121,9 +121,9 @@ func TestGetAllFilePathsIncludeAndExcludePatterns(t *testing.T) {
 	createFiles(t, rootDir, fileStructure)
 
 	expected := []string{
-		filepath.Join(rootDir, "file1.go"),
-		filepath.Join(rootDir, "file2.go"),
-		filepath.Join(rootDir, "subdir_1", "file3.go"),
+		"file1.go",
+		"file2.go",
+		"subdir_1/file3.go",
 	}
 
 	// Include all .go files but exclude subdir_2
@@ -150,9 +150,9 @@ func TestGetAllFilePathsWithExtensionExcludePatterns(t *testing.T) {
 	createFiles(t, rootDir, fileStructure)
 
 	expected := []string{
-		filepath.Join(rootDir, "file1.go"),
-		filepath.Join(rootDir, "subdir_1", "file2.go"),
-		filepath.Join(rootDir, "subdir_1", "nested_subdir_1", "file3.go"),
+		"file1.go",
+		"subdir_1/file2.go",
+		"subdir_1/nested_subdir_1/file3.go",
 	}
 
 	// Exclude .txt and .md files using glob patterns
@@ -186,11 +186,11 @@ func TestGetAllFilePathsIncludeSubdirectories(t *testing.T) {
 	require.NoError(t, err, "GetAllFilePaths failed")
 
 	expected := []string{
-		filepath.Join(rootDir, "file1.go"),
-		filepath.Join(rootDir, "subdir_1"),
-		filepath.Join(rootDir, "subdir_1", "file2.go"),
-		filepath.Join(rootDir, "subdir_1", "nested_subdir_1"),
-		filepath.Join(rootDir, "subdir_1", "nested_subdir_1", "file3.go"),
+		"file1.go",
+		"subdir_1",
+		"subdir_1/file2.go",
+		"subdir_1/nested_subdir_1",
+		"subdir_1/nested_subdir_1/file3.go",
 	}
 	require.ElementsMatch(t, expected, filePaths, "Incorrect paths returned")
 }
@@ -207,7 +207,7 @@ func TestGetAllFilePathsWithExplicitFiles(t *testing.T) {
 	excludePatterns := []string{"**/*.txt"}
 	explicitFiles := []string{filepath.Join(rootDir, "file2.txt")}
 	expected := []string{
-		filepath.Join(rootDir, "file2.txt"),
+		"file2.txt",
 	}
 
 	filePaths, err := files.GetAllFilePaths(rootDir, nil, excludePatterns, explicitFiles)

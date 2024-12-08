@@ -48,11 +48,11 @@ func TestGetAllFilePathsExcludeFileVsDirectory(t *testing.T) {
 	require.NoError(t, err, "GetAllFilePaths failed")
 
 	expected := []string{
-		filepath.Join(rootDir, "build_dir"),
-		filepath.Join(rootDir, "build_dir/file.txt"),
+		"build_dir",
+		"build_dir/file.txt",
 	}
 	notExpected := []string{
-		filepath.Join(rootDir, "build"),
+		"build",
 	}
 
 	assertFileSetMatches(t, filePaths, expected, notExpected,
@@ -79,15 +79,15 @@ func TestGetAllFilePathsExcludeHiddenDirectory(t *testing.T) {
 	require.NoError(t, err, "GetAllFilePaths failed")
 
 	expected := []string{
-		filepath.Join(rootDir, "tests/"),
-		filepath.Join(rootDir, "tests/format_test.go"),
-		filepath.Join(rootDir, "tests/globbing_test.go"),
+		"tests",
+		"tests/format_test.go",
+		"tests/globbing_test.go",
 	}
 	notExpected := []string{
-		filepath.Join(rootDir, ".git/"),
-		filepath.Join(rootDir, ".git/config"),
-		filepath.Join(rootDir, ".git/FETCH_HEAD"),
-		filepath.Join(rootDir, ".git/COMMIT"),
+		".git",
+		".git/config",
+		".git/FETCH_HEAD",
+		".git/COMMIT",
 	}
 	assertFileSetMatches(t, filePaths, expected, notExpected,
 		"Should exclude hidden directory but include repo files")
@@ -113,10 +113,10 @@ func TestGetAllFilePathsIncludeExcludeOverlap(t *testing.T) {
 
 	// file1 and file3 but not file2
 	expected := []string{
-		filepath.Join(rootDir, "file1.go"),
-		filepath.Join(rootDir, "file3.go"),
+		"file1.go",
+		"file3.go",
 	}
-	notExpected := []string{filepath.Join(rootDir, "file2.go")}
+	notExpected := []string{"file2.go"}
 	assertFileSetMatches(t, filePaths, expected, notExpected,
 		"Only file1.go should be included after exclusion")
 }
@@ -137,8 +137,8 @@ func TestGetAllFilePathsCaseSensitivity(t *testing.T) {
 	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
 
-	expected := []string{filepath.Join(rootDir, "readme")}
-	notExpected := []string{filepath.Join(rootDir, "README")}
+	expected := []string{"readme"}
+	notExpected := []string{"README"}
 	assertFileSetMatches(t, filePaths, expected, notExpected,
 		"Only readme should be included after excluding README")
 }
@@ -160,8 +160,8 @@ func TestGetAllFilePathsExcludeNonExistingDirectory(t *testing.T) {
 	require.NoError(t, err, "GetAllFilePaths failed")
 
 	expected := []string{
-		filepath.Join(rootDir, "file.txt"),
-		filepath.Join(rootDir, "money.py"),
+		"file.txt",
+		"money.py",
 	}
 	assertFileSetMatches(t, filePaths, expected, nil,
 		"Existing files should remain unaffected by excluding non-existent directories")
@@ -182,7 +182,7 @@ func TestGetAllFilePathsExcludeEmptyPattern(t *testing.T) {
 	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
 
-	expected := []string{filepath.Join(rootDir, "file.txt")}
+	expected := []string{"file.txt"}
 	assertFileSetMatches(t, filePaths, expected, nil,
 		"Empty exclude patterns should be ignored")
 }
@@ -212,13 +212,14 @@ func TestGetAllFilePathsExcludeSymlink(t *testing.T) {
 
 	// Should only include the target directory and its file
 	expected := []string{
-		targetDir,
-		filepath.Join(rootDir, "target/file.txt"),
+		"target",
+		"target/file.txt",
 	}
 	// The symlink and its contents should be excluded
 	notExpected := []string{
-		symlinkDir,
-		filepath.Join(rootDir, "symlink/file.txt")}
+		"symlink",
+		"symlink/file.txt",
+	}
 	assertFileSetMatches(t, filePaths, expected, notExpected,
 		"Symlinked directories should be excluded correctly")
 }
