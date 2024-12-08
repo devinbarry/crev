@@ -74,6 +74,7 @@ func TestNonExistentFileFlag(t *testing.T) {
 	env.createProjectStructure(files)
 
 	err := env.executeBundleCmd(".", "--files", "nonexistent.go")
+	// TODO We don't check if files exist yet
 	require.Error(t, err, "Should fail when specified file doesn't exist")
 	env.assertLogContains("no files found to bundle")
 }
@@ -140,10 +141,13 @@ func TestIncludeMultiplePatterns(t *testing.T) {
 		"src/util/helper.go",
 		"docs/api.md",
 		"docs/guide.md",
+	}
+	unexpectedFiles := []string{
+		"test/main_test.go",
 		"test/main_test.go",
 		"build/output.txt",
 	}
-	env.assertFileContents("crev-project.txt", expectedFiles, nil)
+	env.assertFileContents("crev-project.txt", expectedFiles, unexpectedFiles)
 }
 
 // TestIncludeNoMatches tests behavior when include pattern matches no files
@@ -155,10 +159,6 @@ func TestIncludeNoMatches(t *testing.T) {
 	env.createProjectStructure(files)
 
 	err := env.executeBundleCmd(".", "--include", "nonexistent/**")
-	// TODO Maybe when we specify files that don't exist, an error should be raised.
-	require.NoError(t, err)
-
-	expectedFiles := []string{"src/main.go"}
-	unexpectedFiles := []string{"nonexistent"}
-	env.assertFileContents("crev-project.txt", expectedFiles, unexpectedFiles)
+	// No files are included in this bundle so an error is raised saying so.
+	env.assertErrorContains(err, "no files found to bundle.")
 }

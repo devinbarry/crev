@@ -95,12 +95,35 @@ func newTestEnv(t *testing.T) *testEnv {
 
 // setupConfig creates a .crev-config.yaml file with given content and initializes viper
 func (env *testEnv) setupConfig(configContent string) {
+	// Reset viper completely
+	viper.Reset()
+
+	// Reset the command's flags
+	generateCmd.ResetFlags()
+
+	// Re-add the original flags
+	generateCmd.Flags().StringSliceP("files", "f", nil,
+		"Specify files to always include (overrides exclude patterns for these files)")
+	generateCmd.Flags().StringSliceP("include", "i", nil,
+		"Include files matching these glob patterns (e.g., 'src/**', '**/*.go')")
+	generateCmd.Flags().StringSliceP("exclude", "e", nil,
+		"Exclude files matching these glob patterns (except those specified by --files)")
+
+	// Create config file
 	configPath := filepath.Join(env.TempDir, ".crev-config.yaml")
 	err := os.WriteFile(configPath, []byte(configContent), 0644)
 	require.NoError(env.t, err, "Failed to create config file")
 
-	viper.Reset()
+	// Set up viper with new config
+	viper.SetConfigType("yaml")
 	viper.SetConfigFile(configPath)
+
+	// Re-bind flags to viper
+	viper.BindPFlag("files", generateCmd.Flags().Lookup("files"))
+	viper.BindPFlag("include", generateCmd.Flags().Lookup("include"))
+	viper.BindPFlag("exclude", generateCmd.Flags().Lookup("exclude"))
+
+	// Read the config
 	err = viper.ReadInConfig()
 	require.NoError(env.t, err, "Failed to read config file")
 }
