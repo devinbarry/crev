@@ -34,28 +34,28 @@ exclude:
   - "logs/**"
 
   # Language-specific exclude patterns
-  - "*.pyc"
-  - "__pycache__/**"
-  - "*.class"
-  - "*.o"
-  - "*.exe"
-  - "*.dll"
-  - "*.so"
-  - "*.dylib"
-  - "*.jar"
-  - "*.gem"
-  - "*.php"
+  - "**/*.pyc"
+  - "**/__pycache__/**"
+  - "**/*.class"
+  - "**/*.o"
+  - "**/*.exe"
+  - "**/*.dll"
+  - "**/*.so"
+  - "**/*.dylib"
+  - "**/*.jar"
+  - "**/*.gem"
+  - "**/*.php"
 
   # Other generic patterns
-  - "*.lock"
-  - "*.log"
-  - "*.tmp"
-  - "*.bak"
-  - "*.swp"
+  - "**/*.lock"
+  - "**/*.log"
+  - "**/*.tmp"
+  - "**/*.bak"
+  - "**/*.swp"
 
   # File types to exclude
-  - "*.md"
-  - "*.test.go"
+  - "**/*.md"
+  - "**/*.test.go"
 `)
 
 var initCmd = &cobra.Command{
