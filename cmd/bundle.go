@@ -75,6 +75,9 @@ Example usage:
 		includePatterns := viper.GetStringSlice("include")
 		opts.ExcludePatterns = viper.GetStringSlice("exclude")
 
+		// Get verbose flag
+		opts.Verbose = viper.GetBool("verbose")
+
 		// If files are explicitly specified, we don't modify include patterns
 		if len(explicitFiles) > 0 {
 			opts.ExplicitFiles = explicitFiles
@@ -107,8 +110,12 @@ func init() {
 	generateCmd.Flags().StringSliceP("exclude", "e", nil,
 		"Exclude files matching these glob patterns (except those specified by --files)")
 
+	// Add verbose flag
+	generateCmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging")
+
 	// Bind flags to viper
 	viper.BindPFlag("files", generateCmd.Flags().Lookup("files"))
 	viper.BindPFlag("include", generateCmd.Flags().Lookup("include"))
 	viper.BindPFlag("exclude", generateCmd.Flags().Lookup("exclude"))
+	viper.BindPFlag("verbose", generateCmd.Flags().Lookup("verbose"))
 }

@@ -18,6 +18,7 @@ type BundleOptions struct {
 	ExcludePatterns []string
 	OutputDir       string
 	MaxConcurrency  int
+	Verbose         bool
 }
 
 // DefaultBundleOptions returns a BundleOptions with default values
@@ -46,7 +47,11 @@ func validateExplicitFiles(files []string) error {
 // Bundle performs the main bundling operation
 func Bundle(opts BundleOptions) error {
 	start := time.Now()
-	log.Printf("Starting bundle operation in directory: %s", opts.RootDir)
+
+	// Only log start if verbose is true
+	if opts.Verbose {
+		log.Printf("Starting bundle operation in directory: %s", opts.RootDir)
+	}
 
 	// Get absolute path for better error messaging
 	absRootDir, err := filepath.Abs(opts.RootDir)
@@ -74,9 +79,13 @@ func Bundle(opts BundleOptions) error {
 
 	// Add default exclude patterns
 	opts.ExcludePatterns = appendDefaultExcludes(opts.ExcludePatterns)
-	log.Printf("Files: %v", opts.ExplicitFiles)
-	log.Printf("Includes: %v", opts.IncludePatterns)
-	log.Printf("Excludes: %v", opts.ExcludePatterns)
+
+	// Debug logs only if verbose
+	if opts.Verbose {
+		log.Printf("Files: %v", opts.ExplicitFiles)
+		log.Printf("Includes: %v", opts.IncludePatterns)
+		log.Printf("Excludes: %v", opts.ExcludePatterns)
+	}
 
 	// Create output file path
 	outputFile := filepath.Join(opts.OutputDir, "crev-project.txt")
@@ -87,7 +96,10 @@ func Bundle(opts BundleOptions) error {
 		return fmt.Errorf("error getting file paths: %w", err)
 	}
 
-	log.Println(filePaths)
+	// Debug logging for collected file paths
+	if opts.Verbose {
+		log.Println(filePaths)
+	}
 
 	if len(filePaths) == 0 {
 		return fmt.Errorf("no files found to bundle. Please check your include/exclude patterns and the specified path")
