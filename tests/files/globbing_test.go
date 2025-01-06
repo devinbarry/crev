@@ -131,16 +131,29 @@ func TestGetAllFilePathsCaseSensitivity(t *testing.T) {
 	}
 	createFiles(t, rootDir, fileStructure)
 
-	// Exclude "README uppercase only"
+	// Check if "README" and "readme" refer to the same file on this filesystem
+	statUpper, errUpper := os.Stat(filepath.Join(rootDir, "README"))
+	statLower, errLower := os.Stat(filepath.Join(rootDir, "readme"))
+	if errUpper == nil && errLower == nil && os.SameFile(statUpper, statLower) {
+		t.Skip("Skipping case-sensitivity test on a case-insensitive filesystem.")
+	}
+
 	includePatterns := []string{"**/*"}
 	excludePatterns := []string{"README"}
 	filePaths, err := files.GetAllFilePaths(rootDir, includePatterns, excludePatterns, nil)
 	require.NoError(t, err, "GetAllFilePaths failed")
 
+	// We expect only the lowercase 'readme' to be included
 	expected := []string{"readme"}
 	notExpected := []string{"README"}
-	assertFileSetMatches(t, filePaths, expected, notExpected,
-		"Only readme should be included after excluding README")
+
+	assertFileSetMatches(
+		t,
+		filePaths,
+		expected,
+		notExpected,
+		"Only readme should be included after excluding README",
+	)
 }
 
 // TestGetAllFilePathsExcludeNonExistingDirectory tests that excluding a non-existing directory doesn't affect existing files.
